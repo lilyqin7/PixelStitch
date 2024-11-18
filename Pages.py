@@ -43,6 +43,10 @@ def imageSelection_redrawAll(app):
     #display images here
     #maybe need multiple pages to display images depending on how many will be in database
 
+####PATTERN PAGE####
+def pattern_redrawAll(app):
+    drawLabel('Pattern!!', app.width/2, app.height/2, size = 20)
+
 ####MAIN####
 #start program on the 'start' screen
 def main():
