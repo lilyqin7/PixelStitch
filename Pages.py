@@ -21,7 +21,8 @@ def start_redrawAll(app):
 
 #if the user clicks within the 'Click here for instructions' box, take to instructions page
 def start_onMousePress(app, mouseX, mouseY):
-    if mouseX >= app.width/4 and mouseX <= app.width * 3/4 and mouseY >= app.height *3/5 and mouseY <= app.height * 4/5:
+    if (mouseX >= app.width/4 and mouseX <= app.width * 3/4 and 
+        mouseY >= app.height *3/5 and mouseY <= app.height * 4/5):
         setActiveScreen('instructions')
 
 ####INSTRUCTIONS PAGE####
@@ -34,7 +35,8 @@ def instructions_redrawAll(app):
 
 #if user clicks on 'Get started' box, leads to image selection page
 def instructions_onMousePress(app, mouseX, mouseY):
-    if mouseX >= app.width/4 and mouseX <= app.width * 3/4 and mouseY >= app.height *3/5 and mouseY <= app.height * 4/5:
+    if (mouseX >= app.width/4 and mouseX <= app.width * 3/4 
+        and mouseY >= app.height *3/5 and mouseY <= app.height * 4/5):
         setActiveScreen('imageSelection')
 
 ####IMAGE SELECTION PAGE####
