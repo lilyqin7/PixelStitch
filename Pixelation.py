@@ -1,7 +1,9 @@
-#app.pixelWidth, pixelHeight???
+#could also make it so the slider only works to preserve the original aspect ratio of the image
+    #keep aspect ratio button????
 from cmu_graphics import *
 from urllib.request import urlopen
 from PIL import Image
+import copy
 
 def loadPilImage(url):
     image = Image.open(urlopen(url))
@@ -12,26 +14,89 @@ def onAppStart(app):
     app.width = 800
     app.height = 500
 
-    #url = 'https://www.w3schools.com/images/picture.jpg'
+    # url = 'https://www.w3schools.com/images/picture.jpg'
     url = 'https://tinyurl.com/great-pitch-gif'
     #loadPilImage only loads some images???
+
+    #turns url into PIL image
     app.pilImage = loadPilImage(url)
     app.imageWidth, app.imageHeight = app.pilImage.size
+
+    #sets necessary variables for controlling size/pixels of image
     app.pixelsWide = 20
     app.pixelsTall = 20
     app.widthSlider = 100
     app.heightSlider = 100
-    adjustImage(app, app.pilImage)
 
+    #changes size of image so the pixels are square
+    changeImageDimensions(app)
+    
+    #changes PIL image to CMU image
+    app.cmuImage = adjustImage(app, app.pilImage)
+
+    #create dictionary to store all the hex codes and the frequency they appear
+    app.hexCodeToFrequency = calculateHexCodes(app, app.pilImage)
+    app.mostFrequentHex = calculateMostFrequentHex(app)
+
+    #variables for diy
+    app.board = [([None] * app.pixelsWide) for row in range(app.pixelsTall)]
+    app.cellBorderWidth = 1
+    app.boardWidth = app.pixelsWide * 10
+    app.boardHeight = app.pixelsTall * 10
+    app.boardLeft = app.width/2 - app.pixelsWide * 10 / 2
+    app.boardTop = app.height/2 - app.pixelsTall * 10 / 2
+
+def calculateMostFrequentHex(app):
+    frequent = []
+    hexFrequncy = app.hexCodeToFrequency.copy()
+    #app.mostFrequentHex can hold UP TO 10 values
+    #if there aren't 10 vastly unique colors, loop will still terminate
+    while len(frequent) < 10 and len(hexFrequncy) > 0:
+        num = 0
+        code = None
+        #searches through app.hexCodeToFrequency for most frequent hex code
+        for val in hexFrequncy:
+            if hexFrequncy[val] > num:
+                num = hexFrequncy[val]
+                code = val
+        frequent.append(code)
+        hexFrequncy.pop(code)
+        #search through app.mostFrequentHex and pop too similar colors
+        j = 0
+        while j < len(frequent):
+            rgbVal = frequent[j]
+            r = rgbVal[0]
+            g = rgbVal[1]
+            b = rgbVal[2]
+            k = j + 1
+            while k < len(frequent):
+                nextVal = frequent[k]
+                #if all 3 rgb values are less than 50, colors are too similar
+                if abs(nextVal[0] - r) < 50 and abs(nextVal[1] - g) < 50 and abs(nextVal[2] - b) < 50:
+                    frequent.pop()
+                k += 1
+            j += 1
+    return frequent
+   
+#goes through all x and y computer pixels and calculates the frequncy of each color
+def calculateHexCodes(app, pilImage):
+    d = {}
+    for x in range(pilImage.width):
+        for y in range(pilImage.height):
+            rgb = pilImage.getpixel((x, y))
+            d[rgb] = d.get(rgb, 0) + 1
+    return d
+
+#converts PIL image to CMU image
 def adjustImage(app, pilImage):
     pilImage = pixelate(pilImage, app.pixelsWide, app.pixelsTall, app.imageWidth, app.imageHeight)
-    app.cmuImage = CMUImage(pilImage)
-    return app.cmuImage
+    return CMUImage(pilImage)
 
 def pixelate(image, pixelsWide, pixelsTall, width, height):
     image = image.resize((pixelsWide, pixelsTall), Image.NEAREST)
     return image.resize((width, height), Image.NEAREST)
 
+#changes app.pixelsWide and app.pixelsTall when bar is slid in increments of 5 pixels
 def calculate(app):
     #changes width display
     if 25 <= app.widthSlider < 30:
@@ -155,52 +220,118 @@ def calculate(app):
         app.pixelsTall = 33
     elif 170 <= app.heightSlider <= 175:
         app.pixelsTall = 34
-    
-#changes image size based on pixels (they should be square)
-def changeImageDimensions(app, dimension):
-    if dimension == 'width':
-        app.imageWidth = int(app.pixelsWide * (app.imageHeight/app.pixelsTall))
-    elif dimension == 'height':
-        app.imageHeight = int(app.pixelsTall * (app.imageWidth/app.pixelsWide))
 
-def onMousePress(app, mouseX, mouseY):
+#changes image size based on pixels (they should be square)
+def changeImageDimensions(app):
+    app.pixelWidth = app.pixelHeight = 10
+    app.imageWidth = app.pixelWidth * app.pixelsWide
+    app.imageHeight = app.pixelHeight * app.pixelsTall
+
+####CREATE OWN DESIGN SCREEN####
+def diy_redrawAll(app):
+    #draw squares
+    drawBoard(app)
+    drawBoardBorder(app)
+
+    #similar slider thingy that controls squares on each dimension
+    drawLabel('Adjust Size', 100, 90)
+
+    #pixels wide
+    drawLabel('Width', 100, 170)
+    drawRect(100, 145, 150, 5, align = 'center')
+    drawRect(225, 145, 40, 40, align = 'center', fill = None, border = 'black')
+    drawLabel(f'{app.pixelsWide}', 225, 145)
+    drawOval(app.widthSlider, 145, 5, 15, fill = 'blue')
+
+    #pixels tall
+    drawLabel('Height', 100, 250)
+    drawRect(100, 225, 150, 5, align = 'center')
+    drawRect(225, 225, 40, 40, align = 'center', fill = None, border = 'black')
+    drawLabel(f'{app.pixelsTall}', 225, 225)
+    drawOval(app.heightSlider, 225, 5, 15, fill = 'blue')
+    #some color boxes on the side with color
+
+def diy_onMousePress(app, mouseX, mouseY):
+    #changes width
+    if 130 <= mouseY and mouseY <= 160 and 25 <= mouseX and mouseX <= 175:
+        app.widthSlider = mouseX
+        calculate(app)
+#need a different calculate function for diy
+    #changes height
+    elif 210 <= mouseY and mouseY <= 240 and 25 <= mouseX and mouseX <= 175:
+        app.heightSlider = mouseX
+        calculate(app)
+
+#from Tetris creative task
+def drawBoard(app):
+    for row in range(app.pixelsWide):
+        for col in range(app.pixelsTall):
+            drawCell(app, row, col, app.board[row][col])
+
+#from Tetris creative task
+def drawBoardBorder(app):
+  #draw the board outline (with double-thickness)
+  drawRect(app.width/2, app.height/2, app.boardWidth, app.boardHeight,
+           fill=None, border='black', borderWidth=2*app.cellBorderWidth, align = 'center')
+
+#from Tetris creative task
+def drawCell(app, row, col, color):
+    cellLeft, cellTop = getCellLeftTop(app, row, col)
+    cellWidth, cellHeight = 10, 10
+    drawRect(cellLeft, cellTop, cellWidth, cellHeight,fill=color, 
+             border='black', borderWidth=app.cellBorderWidth)
+
+#from Tetris creative task
+def getCellLeftTop(app, row, col):
+    cellWidth, cellHeight = 10, 10
+    cellLeft = app.boardLeft + col * cellWidth
+    cellTop = app.boardTop + row * cellHeight
+    return (cellLeft, cellTop)
+
+####SELECTED IMAGE SCREEN####
+def imageUpload_onMousePress(app, mouseX, mouseY):
     #changes width
     if 130 <= mouseY and mouseY <= 160 and 25 <= mouseX and mouseX <= 175:
         app.widthSlider = mouseX
         #changes label and pixelization of images
         calculate(app)
-        adjustImage(app, app.pilImage)
-        changeImageDimensions(app, 'height')
+        changeImageDimensions(app)
+        app.cmuImage = adjustImage(app, app.pilImage)
     #changes height
     elif 210 <= mouseY and mouseY <= 240 and 25 <= mouseX and mouseX <= 175:
         app.heightSlider = mouseX
         #changes label and pixelization of images
         calculate(app)
-        adjustImage(app, app.pilImage)
-        changeImageDimensions(app, 'width')
+        changeImageDimensions(app)
+        app.cmuImage = adjustImage(app, app.pilImage)
 
-def onMouseDrag(app, mouseX, mouseY):
+def imageUpload_onMouseDrag(app, mouseX, mouseY):
     #changes width
     if 130 <= mouseY and mouseY <= 160 and abs(mouseX - app.widthSlider) <= 15:
         app.widthSlider = max(25, min(mouseX, 175))
         #change labels and pixelization image
         calculate(app)
-        adjustImage(app, app.pilImage)
+        changeImageDimensions(app)
+        app.cmuImage = adjustImage(app, app.pilImage)
         
     #changes height
     elif 210 <= mouseY and mouseY <= 240 and abs(mouseX - app.heightSlider) <= 15:
         app.heightSlider = max(25, min(mouseX, 175))
         #change labels and pixelization image
         calculate(app)
-        adjustImage(app, app.pilImage)
+        changeImageDimensions(app)
+        app.cmuImage = adjustImage(app, app.pilImage)
 
-def redrawAll(app):
+# def imageUpload_onMouseMove(app, mouseX, mouseY):
+    #hover tool basically, with color dropper
+
+def imageUpload_redrawAll(app):
     drawImage(app.cmuImage, app.width/2, app.height/2, align = 'center')
     #label and rectangles below are hardcoded in place
     #may move later
     drawLabel('Adjust Size', 100, 90)
 
-    #piexels wide
+    #pixels wide
     drawLabel('Width', 100, 170)
     drawRect(100, 145, 150, 5, align = 'center')
     drawRect(225, 145, 40, 40, align = 'center', fill = None, border = 'black')
@@ -214,7 +345,13 @@ def redrawAll(app):
     drawLabel(f'{app.pixelsTall}', 225, 225)
     drawOval(app.heightSlider, 225, 5, 15, fill = 'blue')
 
+    #draws most common colors
+    for i in range(len(app.mostFrequentHex)):
+        rgbVal = app.mostFrequentHex[i]
+        color = rgb(rgbVal[0], rgbVal[1], rgbVal[2])
+        drawRect(700, 50 * i, 20, 20, fill = color, border = 'black')
+
 def main():
-    runApp(width = app.width, height = app.height)
+    runAppWithScreens(initialScreen = 'diy', width = app.width, height = app.height)
 
 main()
