@@ -368,6 +368,7 @@ def resizingBoard(app, board, pixelsWide, pixelsTall):
     newBoard = [([None] * pixelsWide) for row in range(pixelsTall)]
     #copy existing values into new board
     #may need to change logic later
+    #need to ifnd way to center it
     for row in range(min(len(oldBoard), len(newBoard))):
         for col in range(min(len(oldBoard[0]), len(newBoard[0]))):
             newBoard[row][col] = oldBoard[row][col]
@@ -412,9 +413,14 @@ def mouseMove(app, mouseX, mouseY, colorList):
     else:
         app.colorSelect = None    
 
+def updateColor(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
+    if isSquare(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
+        row, col = findSquare(app, mouseX, mouseY, board, boardLeft, boardTop)
+        board[row][col] = app.diyColorSelect
+    return board
+
 def isSquare(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
-    if (boardLeft <= mouseX <= boardLeft + pixelsWide * 10 and
-        boardTop <= mouseY <= boardTop + pixelsTall * 10):
+    if (boardLeft <= mouseX <= boardLeft + pixelsWide * 10 and boardTop <= mouseY <= boardTop + pixelsTall * 10):
             return True
     return False
 
@@ -431,15 +437,14 @@ def diy_onMouseMove(app, mouseX, mouseY):
     mouseMove(app, mouseX, mouseY, app.diyColors)
 
 def diy_onMouseDrag(app, mouseX, mouseY):
-    if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
-        row, col = findSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
-        app.diyBoard[row][col] = app.diyColorSelect
+    app.diyBoard = updateColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
 
 def diy_onMousePress(app, mouseX, mouseY):
     if app.colorSelect != None:
         app.diyColorSelect = app.colorSelect
     app.diyWidthSlider, app.diyHeightSlider = designingMousePress(app, mouseX, mouseY, app.diyWidthSlider, app.diyHeightSlider)
     diy_change(app)
+    app.diyBoard = updateColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
 
 def diy_redrawAll(app):
     drawGrid(app, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
@@ -460,6 +465,9 @@ def image_onMousePress(app, mouseX, mouseY):
     app.imageWidthSlider, app.imageHeightSlider = designingMousePress(app, mouseX, mouseY, app.imageWidthSlider, app.imageHeightSlider)
     if oldWidth != app.imageWidthSlider or oldHeight != app.imageHeightSlider:
         image_change(app)
+    if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
+        row, col = findSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop)
+        app.imageBoard[row][col] = app.imageColorSelect
 
 def image_onMouseDrag(app, mouseX, mouseY):
     #changes width
