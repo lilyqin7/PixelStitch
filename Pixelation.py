@@ -1,5 +1,8 @@
 #could also make it so the slider only works to preserve the original aspect ratio of the image
     #keep aspect ratio button????
+
+
+
 from cmu_graphics import *
 from urllib.request import urlopen
 from PIL import Image
@@ -16,6 +19,9 @@ def onAppStart(app):
     app.width = 800
     app.height = 500    
 
+    #color dropper tool
+    app.colorDropper = 'Icons8-Ios7-Editing-Color-Dropper.512.png'
+
     #####variables for image####
 
     # url = 'https://www.w3schools.com/images/picture.jpg'
@@ -24,6 +30,9 @@ def onAppStart(app):
 
     #turns url into PIL image
     app.pilImage = loadPilImage(url)
+    
+    # app.pilImage = Image.open('tree-736885_1280 (1).jpg').convert('RGB')
+
     app.imageWidth, app.imageHeight = app.pilImage.size
 
     #sets necessary variables for controlling size/pixels of image
@@ -34,8 +43,8 @@ def onAppStart(app):
     changeImageDimensions(app)
     
     #changes PIL image to CMU image
-    # app.cmuImage = CMUImage(pixelate(app.pilImage, app.imagePixelsWide, 
-                                    #  app.imagePixelsTall, app.imageWidth, app.imageHeight))
+    app.cmuImage = CMUImage(pixelate(app.pilImage, app.imagePixelsWide, 
+                                     app.imagePixelsTall, app.imageWidth, app.imageHeight))
 
     #create dictionary to store all the hex codes and the frequency they appear
     app.hexCodeToFrequency = calculateHexCodes(app, app.pilImage)
@@ -83,19 +92,19 @@ def onAppStart(app):
 #only used in image
 def calculateMostFrequentHex(app):
     frequent = []
-    hexFrequncy = app.hexCodeToFrequency.copy()
+    hexFrequency = app.hexCodeToFrequency.copy()
     #app.mostFrequentHex can hold UP TO 10 values
     #if there aren't 10 vastly unique colors, loop will still terminate
-    while len(frequent) < 10 and len(hexFrequncy) > 0:
+    while len(frequent) < 10 and len(hexFrequency) > 0:
         num = 0
         code = None
         #searches through app.hexCodeToFrequency for most frequent hex code
-        for val in hexFrequncy:
-            if hexFrequncy[val] > num:
-                num = hexFrequncy[val]
+        for val in hexFrequency:
+            if hexFrequency[val] > num:
+                num = hexFrequency[val]
                 code = val
         frequent.append(code)
-        hexFrequncy.pop(code)
+        hexFrequency.pop(code)
         #search through app.mostFrequentHex and pop too similar colors
         j = 0
         while j < len(frequent):
@@ -337,7 +346,6 @@ def image_change(app):
                                                      app.imageHeightSlider,
                                                      app.imagePixelsWide, app.imagePixelsTall)
     changeImageDimensions(app)
-    print(app.imagePixelsWide, app.imagePixelsTall)
     app.imageBoard = resizingBoard(app, app.imageBoard, app.imagePixelsWide, app.imagePixelsTall)
     app.imageBoardLeft = app.width/2 - app.imagePixelsWide * 10 / 2
     app.imageBoardTop = app.height/2 - app.imagePixelsTall * 10 / 2
@@ -451,10 +459,22 @@ def diy_redrawAll(app):
     drawControls(app, app.diyWidthSlider, app.diyHeightSlider, app.diyPixelsWide, app.diyPixelsTall)
     #draws selected colors
     for i in range(len(app.diyColors)):
-        drawRect(700, 50 * i, 20, 20, fill = app.diyColors[i], border = 'black')
+        row, col = i % 3, i // 3
+        drawRect(650 + (row) * 18, 100 + (col) * 18, 20, 20, fill = app.diyColors[i], border = 'black')
+    
     #if mouse hovering over color, draw color selector
     if app.colorSelect != None:
         drawTeardrop(app.diyMouseX, app.diyMouseY, 10, 10, app.colorSelect)
+    
+    #color dropper
+    #image from Icon Archive
+    drawImage('Icons8-Ios7-Editing-Color-Dropper.512.png', 670.5, 156.5, width = 15, height = 15)
+    drawRect(668, 154, 20, 20, fill = None, border = 'black')
+
+    #color wheel
+    #image from PNGWing
+    drawImage('pngwing.com (1).png', 688.5, 156.5, width = 15, height = 15)
+    drawRect(686, 154, 20, 20, fill = None, border = 'black')
 
 ####IMAGE SCREEN####
 def image_onMousePress(app, mouseX, mouseY):
@@ -465,6 +485,7 @@ def image_onMousePress(app, mouseX, mouseY):
     app.imageWidthSlider, app.imageHeightSlider = designingMousePress(app, mouseX, mouseY, app.imageWidthSlider, app.imageHeightSlider)
     if oldWidth != app.imageWidthSlider or oldHeight != app.imageHeightSlider:
         image_change(app)
+
     if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
         row, col = findSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop)
         app.imageBoard[row][col] = app.imageColorSelect
@@ -487,18 +508,37 @@ def image_onMouseDrag(app, mouseX, mouseY):
 def image_onMouseMove(app, mouseX, mouseY):
     app.imageMouseX, app.imageMouseY = mouseX, mouseY
     mouseMove(app, mouseX, mouseY, app.mostFrequentHex)
+
+    #checks if mouse is hovering over an image square
+    if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
+        row, col = findSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop)
+        app.colorSelect = app.imageBoard[row][col]
+
     if app.colorSelect != None:
-        app.colorSelect = rgb(app.colorSelect[0], app.colorSelect[1], app.colorSelect[2])
+        if (isinstance(app.colorSelect, tuple) and len(app.colorSelect) == 3 and all(isinstance(c, int) for c in app.colorSelect)): #with assistance from chatGPT
+            print(app.colorSelect)
+            app.colorSelect = rgb(app.colorSelect[0], app.colorSelect[1], app.colorSelect[2])
 
 def image_redrawAll(app):
-    # drawImage(app.cmuImage, app.width/2, app.height/2, align = 'center')
     drawControls(app, app.imageWidthSlider, app.imageHeightSlider, app.imagePixelsWide, app.imagePixelsTall)
     drawGrid(app, app.imageBoard, app.imageBoardLeft, app.imageBoardTop)
+
     #draws most common colors
     for i in range(len(app.mostFrequentHex)):
         rgbVal = app.mostFrequentHex[i]
         color = rgb(rgbVal[0], rgbVal[1], rgbVal[2])
-        drawRect(700, 50 * i, 20, 20, fill = color, border = 'black')
+        row, col = i % 3, i // 3
+        drawRect(650 + (row) * 18, 100 + (col) * 18, 20, 20, fill = color, border = 'black')
+
+    #color dropper
+    #image from Icon Archive
+    drawImage('Icons8-Ios7-Editing-Color-Dropper.512.png', 670.5, 156.5, width = 15, height = 15)
+    drawRect(668, 154, 20, 20, fill = None, border = 'black')
+
+    #color wheel
+    #image from PNGWing
+    drawImage('pngwing.com (1).png', 688.5, 156.5, width = 15, height = 15)
+    drawRect(686, 154, 20, 20, fill = None, border = 'black')
 
     if app.colorSelect != None:
         drawTeardrop(app.imageMouseX, app.imageMouseY, 10, 10, app.colorSelect)
@@ -512,6 +552,8 @@ def start_onMousePress(app, mouseX, mouseY):
         setActiveScreen('image')
 
 def start_redrawAll(app):
+    # drawImage('tree-736885_1280 (1).jpg', 0, 0)
+    # drawImage(app.cmuImage, 0, 0)
     drawLabel('DIY or image?', app.width/2, app.height/2, size = 40)
     drawRect(app.width/4, app.height * 7/10, app.width/3, app.height/8, fill = 'pink', align = 'center')
     drawLabel('DIY', app.width/4, app.height * 7/10, size = 25)
