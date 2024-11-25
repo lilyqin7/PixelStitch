@@ -3,9 +3,6 @@
 
 #also need to move grid over a bit
 
-####COLOR WHEEL COLOR IS OFF????
-
-####ALSO IS RETURNING 4 VALUES IN RGB... ALPHA?? HOW TO DEAL W
 
 from cmu_graphics import *
 from urllib.request import urlopen
@@ -26,8 +23,10 @@ def onAppStart(app):
     #color dropper and color wheel tool
     app.selectColorDropper = False
     app.selectColorWheel = False
+    app.colorDropperColor = None
     #image from clipartmax
-    app.colorWheel = Image.open('clipart835798.png')
+    wheel = Image.open('clipart835798.png')
+    app.colorWheel = wheel.resize((100, 100))
     app.selectedFromColorWheel = False
     app.selectedColorFromWheel = (0, 0, 0)
 
@@ -61,7 +60,7 @@ def onAppStart(app):
 
     #variables for drawing board
     app.imageBoard = [([None] * app.imagePixelsWide) for row in range(app.imagePixelsTall)]
-    app.imageBoardLeft = app.width/2 - app.imagePixelsWide * 5
+    app.imageBoardLeft = app.width/2 + 47 - app.imagePixelsWide * 5
     app.imageBoardTop = app.height/2 - app.imagePixelsTall * 5
     
     pilImage = pixelate(app.pilImage, app.imagePixelsWide, 
@@ -86,7 +85,7 @@ def onAppStart(app):
 
     #variables for drawing board
     app.diyBoard = [([None] * app.diyPixelsWide) for row in range(app.diyPixelsTall)]
-    app.diyBoardLeft = app.width/2 - app.diyPixelsWide * 5
+    app.diyBoardLeft = app.width/2 + 47 - app.diyPixelsWide * 5 
     app.diyBoardTop = app.height/2 - app.diyPixelsTall * 5
 
     #variables for color select
@@ -133,6 +132,7 @@ def calculateMostFrequentHex(app):
             j += 1
     return frequent
    
+
 #goes through all x and y computer pixels and calculates the frequncy of each color
 def calculateHexCodes(app, pilImage):
     d = {}
@@ -154,12 +154,13 @@ def changeImageDimensions(app):
 
 ##ADJUSTS GRIDS##
 def image_change(app):
-    (app.imageWidthSlider, app.imageHeightSlider, app.imagePixelsWide, app.imagePixelsTall) = calculateGridDimensions(app.imageWidthSlider, 
+    (app.imageWidthSlider, app.imageHeightSlider, app.imagePixelsWide, 
+     app.imagePixelsTall) = calculateGridDimensions(app.imageWidthSlider, 
                                                      app.imageHeightSlider,
                                                      app.imagePixelsWide, app.imagePixelsTall)
     changeImageDimensions(app)
     app.imageBoard = resizingBoard(app, app.imageBoard, app.imagePixelsWide, app.imagePixelsTall)
-    app.imageBoardLeft = app.width/2 - app.imagePixelsWide * 5
+    app.imageBoardLeft = app.width/2 + 47 - app.imagePixelsWide * 5
     app.imageBoardTop = app.height/2 - app.imagePixelsTall * 5
 
     pilImage = pixelate(app.pilImage, app.imagePixelsWide, 
@@ -173,12 +174,13 @@ def image_change(app):
             app.imageBoard[row][col] = rgbColor
 
 def diy_change(app):
-    app.diyWidthSlider, app.diyHeightSlider, app.diyPixelsWide, app.diyPixelsTall = calculateGridDimensions(app.diyWidthSlider, 
+    (app.diyWidthSlider, app.diyHeightSlider, app.diyPixelsWide, 
+    app.diyPixelsTall) = calculateGridDimensions(app.diyWidthSlider, 
                                                    app.diyHeightSlider, 
                                                    app.diyPixelsWide, app.diyPixelsTall)
     
     app.diyBoard = resizingBoard(app, app.diyBoard, app.diyPixelsWide, app.diyPixelsTall)
-    app.diyBoardLeft = app.width/2 - app.diyPixelsWide * 5
+    app.diyBoardLeft = app.width/2 + 47 - app.diyPixelsWide * 5
     app.diyBoardTop = app.height/2 - app.diyPixelsTall * 5
 
 ####NECESSARY FOR BOTH####
@@ -188,7 +190,7 @@ def resizingBoard(app, board, pixelsWide, pixelsTall):
     newBoard = [([None] * pixelsWide) for row in range(pixelsTall)]
     #copy existing values into new board
     #may need to change logic later
-    #need to ifnd way to center it
+    #need to find way to center it
     for row in range(min(len(oldBoard), len(newBoard))):
         for col in range(min(len(oldBoard[0]), len(newBoard[0]))):
             newBoard[row][col] = oldBoard[row][col]
@@ -463,6 +465,14 @@ def drawColorPanel(app, colorList, mouseX, mouseY):
             color = rgb(rgbVal[0], rgbVal[1], rgbVal[2])
             drawRect(650 + (row) * 18, 100 + (col) * 18, 20, 20, fill = color, border = 'black')
     
+    #selected color
+    if app.colorSelect != None:
+        drawRect(738, 120, 30, 30, fill = app.colorSelect, border = 'black')
+    elif app.prevScreen == 'diy':
+        drawRect(738, 120, 30, 30, fill = app.diyColorSelect, border = 'black')
+    elif app.prevScreen == 'image':
+        drawRect(738, 120, 30, 30, fill = app.imageColorSelect, border = 'black')
+
     #color dropper
     #image from Icon Archive
     drawImage('Icons8-Ios7-Editing-Color-Dropper.512.png', 670.5, 156.5, width = 15, height = 15)
@@ -476,25 +486,31 @@ def drawColorPanel(app, colorList, mouseX, mouseY):
     #draws color wheel
     if app.selectColorWheel == True:
         #image from clipartmax
-        drawImage(CMUImage(app.colorWheel), 620, 230, width = 100, height = 100)
-        drawRect(595, 205, 150, 200, fill = None, border = 'black')
-        if distance(mouseX, mouseY, 670, 280) <= 50:
-            drawRect(610, 350, 120, 20, fill = gradient('white', app.colorSelect, 'black', start = 'left'), border = 'black')
+        drawImage(CMUImage(app.colorWheel), 645, 230)
+        drawRect(620, 205, 150, 200, fill = None, border = 'black')
+        if distance(mouseX, mouseY, 695, 280) <= 50 and app.colorSelect != None:
+            drawRect(635, 350, 120, 20, fill = gradient('white', app.colorSelect, 'black', start = 'left'), border = 'black')
         elif app.selectedFromColorWheel == True:
-            print(app.selectedColorFromWheel)
             color = rgb(app.selectedColorFromWheel[0], app.selectedColorFromWheel[1], app.selectedColorFromWheel[2])
-            drawRect(610, 350, 120, 20, fill = gradient('white', color, 'black', start = 'left'), border = 'black')
+            drawRect(635, 350, 120, 20, fill = gradient('white', color, 'black', start = 'left'), border = 'black')
         else:
-            drawRect(610, 350, 120, 20, fill = gradient('white', 'black', start = 'left'), border = 'black')
+            drawRect(635, 350, 120, 20, fill = gradient('white', 'black', start = 'left'), border = 'black')
+
+def findColorDropperColor(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
+    #checks if mouse is hovering over a square
+    if app.colorSelect == None:
+        if isSquare(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
+            row, col = findSquare(app, mouseX, mouseY, board, boardLeft, boardTop)
+            app.colorDropperColor = board[row][col]
 
 def getColorWheelColor(app, mouseX, mouseY):
     #check if mouse is in color wheel or in color rectangle beneath
     if app.selectColorWheel == True:
-        if distance(mouseX, mouseY, 670, 280) <= 50:
-            color = app.colorWheel.getpixel((mouseX, mouseY))
+        if distance(mouseX, mouseY, 695, 280) <= 50:
+            color = app.colorWheel.getpixel((mouseX - 645, mouseY - 230))
             app.colorSelect = rgb(color[0], color[1], color[2])
-        elif 610 <= mouseX <= 730 and 350 <= mouseY <= 370:
-            app.colorSelect = getGradientColor(app, mouseX, 610, 730, (255, 255, 255), app.selectedColorFromWheel[:3], (0, 0, 0))
+        elif 635 <= mouseX <= 755 and 350 <= mouseY <= 370:
+            app.colorSelect = getGradientColor(app, mouseX, 635, 755, (255, 255, 255), app.selectedColorFromWheel[:3], (0, 0, 0))
 
     if app.colorSelect != None:
         if (isinstance(app.colorSelect, tuple) and len(app.colorSelect) == 3 and all(isinstance(c, int) for c in app.colorSelect)): #with assistance from chatGPT
@@ -503,16 +519,16 @@ def getColorWheelColor(app, mouseX, mouseY):
 def checkColorControls(app, mouseX, mouseY):
     #checks if pressing on color dropper
     if 668 <= mouseX <= 686 and 154 <= mouseY <= 172:
-        app.selectColorDropper = True
+        app.selectColorDropper = not app.selectColorDropper
 
-    #checks if pressing on color wheel
+    #checks if pressing on color wheel icon
     if 686 <= mouseX <= 704 and 154 <= mouseY <= 172:
         app.selectColorWheel = not app.selectColorWheel
     
     #checks if selected color from color wheel
-    if app.selectColorWheel == True and distance(mouseX, mouseY, 670, 280) <= 50:
+    if app.selectColorWheel == True and distance(mouseX, mouseY, 695, 280) <= 50:
         app.selectedFromColorWheel = True
-        app.selectedColorFromWheel = app.colorWheel.getpixel((mouseX, mouseY))
+        app.selectedColorFromWheel = app.colorWheel.getpixel((mouseX - 645, mouseY - 230))
     elif app.selectColorWheel == False:
         app.selectedFromColorWheel = False
 
@@ -524,18 +540,27 @@ def checkButtons(app, mouseX, mouseY):
     elif 650 <= mouseX <= 750 and 450 <= mouseY <= 480:
         setActiveScreen('result')
 
+def drawUserColorSelection(app, mouseX, mouseY):
+    #if mouse hovering over valid color, draw teardrop so user can see color
+    if app.colorSelect != None:
+        drawTeardrop(mouseX, mouseY, 10, 10, app.colorSelect)
+
+    #if user has selected color dropper, draw so can see
+    if app.selectColorDropper == True:
+        drawImage('Icons8-Ios7-Editing-Color-Dropper.512.png', mouseX, mouseY, width = 15, height = 15)
+
 ##DRAWS THE GRID##
 #modified from Tetris creative task
-def drawGrid(app, board, boardLeft, boardTop):
+def drawGrid(app, board, boardLeft, boardTop, center):
     drawBoard(app, board, boardLeft, boardTop)
-    drawBoardBorder(app, board)
+    drawBoardBorder(app, board, center)
 def drawBoard(app, board, boardLeft, boardTop):
     for row in range(len(board)):
         for col in range(len(board[row])):
             drawCell(app, row, col, board[row][col], boardLeft, boardTop)
-def drawBoardBorder(app, board):
+def drawBoardBorder(app, board, leftEdge):
   #draw the board outline (with double-thickness)
-  drawRect(app.width/2, app.height/2, len(board[0]) * 10, len(board) * 10,
+  drawRect(leftEdge, app.height/2, len(board[0]) * 10, len(board) * 10,
            fill=None, border='black', borderWidth=2*app.cellBorderWidth, align = 'center')
 def drawCell(app, row, col, color, boardLeft, boardTop):
     cellLeft, cellTop = getCellLeftTop(app, row, col, boardLeft, boardTop)
@@ -552,14 +577,26 @@ def getCellLeftTop(app, row, col, boardLeft, boardTop):
 def diy_onMouseMove(app, mouseX, mouseY):
     app.diyMouseX, app.diyMouseY = mouseX, mouseY
     mouseMove(app, mouseX, mouseY, app.diyColors)
+
+    if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
+        row, col = findSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
+        if app.diyBoard[row][col] != None:
+            if app.selectColorDropper == True:
+                findColorDropperColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyBoardLeft, app.diyPixelsTall)
+        else:
+            app.colorDropperColor = None
+    
     getColorWheelColor(app, mouseX, mouseY)
 
 def diy_onMouseDrag(app, mouseX, mouseY):
     app.diyBoard = updateColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
 
 def diy_onMousePress(app, mouseX, mouseY):
+    app.selectColorDropper = False
+
     if app.colorSelect != None:
         app.diyColorSelect = app.colorSelect
+        
     app.diyWidthSlider, app.diyHeightSlider = mousePress(app, mouseX, mouseY, app.diyWidthSlider, app.diyHeightSlider)
     checkButtons(app, mouseX, mouseY)
     diy_change(app)
@@ -567,13 +604,10 @@ def diy_onMousePress(app, mouseX, mouseY):
     checkColorControls(app, mouseX, mouseY)
 
 def diy_redrawAll(app):
-    drawGrid(app, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
+    drawGrid(app, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, 447)
     drawControls(app, app.diyWidthSlider, app.diyHeightSlider, app.diyPixelsWide, app.diyPixelsTall)
     drawColorPanel(app, app.diyColors, app.diyMouseX, app.diyMouseY)
-    
-    #if mouse hovering over color, draw color selector
-    if app.colorSelect != None:
-        drawTeardrop(app.diyMouseX, app.diyMouseY, 10, 10, app.colorSelect)
+    drawUserColorSelection(app, app.diyMouseX, app.diyMouseY)
 
 ####IMAGE SCREEN####
 def image_onMousePress(app, mouseX, mouseY):
@@ -617,31 +651,21 @@ def image_onMouseMove(app, mouseX, mouseY):
     mouseMove(app, mouseX, mouseY, app.mostFrequentHex)
 
     #checks if mouse is hovering over an image square
-    if app.selectColorDropper == True:
-        if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
+    if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
+        if app.selectColorDropper == True:
+            findColorDropperColor(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall)
             row, col = findSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop)
             app.colorSelect = app.imageBoard[row][col]
+        else:
+            app.colorDropperColor = None
 
-    #check if mouse is in color wheel or in color rectangle beneath
-    if app.selectColorWheel == True:
-        if distance(app.imageMouseX, app.imageMouseY, 670, 280) <= 50:
-            color = app.colorWheel.getpixel((app.imageMouseX, app.imageMouseY))
-            app.colorSelect = rgb(color[0], color[1], color[2])
-        elif 610 <= mouseX <= 730 and 350 <= mouseY <= 370:
-            app.colorSelect = getGradientColor(app, mouseX, 610, 730, (255, 255, 255), app.selectedColorFromWheel[:3], (0, 0, 0))
-
-    if app.colorSelect != None:
-        if (isinstance(app.colorSelect, tuple) and len(app.colorSelect) == 3 and all(isinstance(c, int) for c in app.colorSelect)): #with assistance from chatGPT
-            app.colorSelect = rgb(app.colorSelect[0], app.colorSelect[1], app.colorSelect[2])
+    getColorWheelColor(app, mouseX, mouseY)
 
 def image_redrawAll(app):
     drawControls(app, app.imageWidthSlider, app.imageHeightSlider, app.imagePixelsWide, app.imagePixelsTall)
-    drawGrid(app, app.imageBoard, app.imageBoardLeft, app.imageBoardTop)
+    drawGrid(app, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, 447)
     drawColorPanel(app, app.mostFrequentHex, app.imageMouseX, app.imageMouseY)
-
-    #if mouse hovering over valid color, draw teardrop so user can see color
-    if app.colorSelect != None:
-        drawTeardrop(app.imageMouseX, app.imageMouseY, 10, 10, app.colorSelect)
+    drawUserColorSelection(app, app.imageMouseX, app.imageMouseY)
 
 ####RESULT SCREEN####
 def result_onMousePress(app, mouseX, mouseY):
@@ -658,9 +682,9 @@ def result_redrawAll(app):
 
     #draws design
     if app.prevScreen == 'image':
-        drawGrid(app, app.imageBoard, app.imageBoardLeft, app.imageBoardTop)
+        drawGrid(app, app.imageBoard, app.imageBoardLeft - 47, app.imageBoardTop, 400)
     elif app.prevScreen == 'diy':
-        drawGrid(app, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
+        drawGrid(app, app.diyBoard, app.diyBoardLeft - 47, app.diyBoardTop, 400)
 
     #scrollbar
     drawRect(788, 0, 12, 500, fill = 'lightGray')
