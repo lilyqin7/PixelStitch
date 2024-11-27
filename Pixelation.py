@@ -6,8 +6,6 @@
 # scroll bar
 # maybe "AI" image chooser based on categories user selects
 
-####NOTES####
-# adjust the edge cases for aspect ratio and sliders
 
 #tree image from Pixabay via Pexel
 
@@ -55,6 +53,10 @@ def onAppStart(app):
     app.rectToolStart = 0, 0
     app.rectToolEnd = 0, 0
     app.drawingRect = False
+
+    app.drawShape = False
+    
+    app.boardSelected = set()
 
     #####variables for image####
 
@@ -179,6 +181,24 @@ def changeImageDimensions(app):
     app.imageWidth = app.pixelWidth * app.imagePixelsWide
     app.imageHeight = app.pixelHeight * app.imagePixelsTall
 
+####USED IN DIY SCREEN
+def updateColor(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
+    print(app.drawShape, app.drawingRect, app.drawingOval)
+    if not app.drawingRect and not app.drawingOval:
+        if isSquare(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
+            row, col = findSquare(app, mouseX, mouseY, board, boardLeft, boardTop)
+            board[row][col] = app.diyColorSelect
+    else:
+        print('bye')
+        print(app.boardSelected)
+        for square in app.boardSelected:
+            row, col = square
+            board[row][col] = app.diyColorSelect
+        # else:
+
+            
+    return board
+
 ##ADJUSTS GRIDS##
 def image_change(app):
     (app.imageWidthSlider, app.imageHeightSlider, app.imagePixelsWide, 
@@ -263,12 +283,6 @@ def mouseMove(app, mouseX, mouseY, colorList):
             app.colorSelect = None
     else:
         app.colorSelect = None
-
-def updateColor(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
-    if isSquare(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
-        row, col = findSquare(app, mouseX, mouseY, board, boardLeft, boardTop)
-        board[row][col] = app.diyColorSelect
-    return board
 
 def isSquare(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
     if (boardLeft <= mouseX <= boardLeft + pixelsWide * 10 and boardTop <= mouseY <= boardTop + pixelsTall * 10):
@@ -539,16 +553,25 @@ def diy_onMouseMove(app, mouseX, mouseY):
     getColorWheelColor(app, mouseX, mouseY)
 
 def diy_onMouseDrag(app, mouseX, mouseY):
-    app.diyBoard = updateColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
-
     if app.drawingRect:
         app.rectToolEnd = mouseX, mouseY
+        xStart, yStart = app.rectToolStart
+        for x in range(xStart, mouseX, 10):
+            for y in range(yStart, mouseY, 10):
+                if isSquare(app, x, y, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
+                    print('hi')
+                    row, col = findSquare(app, x, y, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
+                    app.boardSelected.add((row, col))
+
     
     if app.drawingOval:
         app.ovalToolEnd = mouseX, mouseY
 
     if app.drawingDrag:
         app.dragEnd = mouseX, mouseY
+
+    app.diyBoard = updateColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
+
 
 def diy_onMousePress(app, mouseX, mouseY):
     if app.rectTool:
@@ -561,6 +584,7 @@ def diy_onMousePress(app, mouseX, mouseY):
         app.drawingDrag = True
 
     app.selectColorDropper = app.dragSelection = app.fillSelection = app.ovalTool = app.rectTool = False
+    app.boardSelected = set()
 
     if app.colorSelect != None:
         app.diyColorSelect = app.colorSelect
@@ -585,15 +609,17 @@ def diy_onMousePress(app, mouseX, mouseY):
         app.dragEnd = mouseX + 1, mouseY + 1
 
 def diy_onMouseRelease(app, mouseX, mouseY):
-    if app.rectTool:
+    if app.drawingRect:
         app.rectToolEnd = mouseX, mouseY
         app.drawingRect = False
+        app.drawShape = True
 
-    if app.ovalTool:
+    if app.drawingOval:
         app.ovalToolEnd = mouseX, mouseY
         app.drawingOval = False
+        app.drawShape = True
 
-    if app.dragSelection:
+    if app.drawingDrag:
         app.dragEnd = mouseX, mouseY
         app.drawingDrag = False
 
