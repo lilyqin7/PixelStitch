@@ -40,9 +40,21 @@ def onAppStart(app):
 
     #editing tools
     app.dragSelection = False
+    app.dragStart = 0, 0
+    app.dragEnd = 0, 0
+    app.drawingDrag = False
+
     app.fillSelection = False
-    app.circleTool = False
+
+    app.ovalTool = False
+    app.ovalToolStart = 0, 0
+    app.ovalToolEnd = 0, 0
+    app.drawingOval = False
+
     app.rectTool = False
+    app.rectToolStart = 0, 0
+    app.rectToolEnd = 0, 0
+    app.drawingRect = False
 
     #####variables for image####
 
@@ -472,14 +484,14 @@ def checkEditingTools(app, mouseX, mouseY):
         elif 100 <= mouseX < 137:
             app.rectTool = not app.rectTool
         elif 137 <= mouseX <= 175:
-            app.circleTool = not app.circleTool
+            app.ovalTool = not app.ovalTool
 
 def drawEditingTools(app, mouseX, mouseY):
     if app.dragSelection == True:
         drawImage('move icon.png', mouseX, mouseY, width = 20, height = 20)
     if app.fillSelection == True:
         drawImage('fill icon.png', mouseX, mouseY, width = 20, height = 20)
-    if app.circleTool == True:
+    if app.ovalTool == True:
         drawImage('circle icon.png', mouseX, mouseY, width = 20, height = 20)
     if app.rectTool == True:
         drawImage('square icon.png', mouseX, mouseY, width = 20, height = 20)
@@ -529,18 +541,61 @@ def diy_onMouseMove(app, mouseX, mouseY):
 def diy_onMouseDrag(app, mouseX, mouseY):
     app.diyBoard = updateColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
 
+    if app.drawingRect:
+        app.rectToolEnd = mouseX, mouseY
+    
+    if app.drawingOval:
+        app.ovalToolEnd = mouseX, mouseY
+
+    if app.drawingDrag:
+        app.dragEnd = mouseX, mouseY
+
 def diy_onMousePress(app, mouseX, mouseY):
-    app.selectColorDropper = app.dragSelection = app.fillSelection = app.circleTool = app.rectTool = False
+    if app.rectTool:
+        app.drawingRect = True
+
+    if app.ovalTool:
+        app.drawingOval = True
+
+    if app.dragSelection:
+        app.drawingDrag = True
+
+    app.selectColorDropper = app.dragSelection = app.fillSelection = app.ovalTool = app.rectTool = False
 
     if app.colorSelect != None:
         app.diyColorSelect = app.colorSelect
-        
+    
     app.diyWidthSlider, app.diyHeightSlider = mousePress(app, mouseX, mouseY, app.diyWidthSlider, app.diyHeightSlider)
     diy_change(app)
     app.diyBoard = updateColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
     checkButtons(app, mouseX, mouseY)
     checkColorControls(app, mouseX, mouseY)
     checkEditingTools(app, mouseX, mouseY)
+
+    if app.drawingRect:
+        app.rectToolStart = mouseX, mouseY
+        app.rectToolEnd = mouseX + 1, mouseY + 1
+
+    if app.drawingOval:
+        app.ovalToolStart = mouseX, mouseY
+        app.ovalToolEnd = mouseX + 1, mouseY + 1
+
+    if app.drawingDrag:
+        app.dragStart = mouseX, mouseY
+        app.dragEnd = mouseX + 1, mouseY + 1
+
+def diy_onMouseRelease(app, mouseX, mouseY):
+    if app.rectTool:
+        app.rectToolEnd = mouseX, mouseY
+        app.drawingRect = False
+
+    if app.ovalTool:
+        app.ovalToolEnd = mouseX, mouseY
+        app.drawingOval = False
+
+    if app.dragSelection:
+        app.dragEnd = mouseX, mouseY
+        app.drawingDrag = False
 
 def diy_redrawAll(app):
     drawGrid(app, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, 447)
@@ -549,9 +604,27 @@ def diy_redrawAll(app):
     drawUserColorSelection(app, app.diyMouseX, app.diyMouseY)
     drawEditingTools(app, app.diyMouseX, app.diyMouseY)
 
+    if app.drawingRect:
+        startX, startY = app.rectToolStart
+        endX, endY = app.rectToolEnd
+        drawRect(startX, startY, endX - startX, endY - startY, fill = None, border = 'black')
+
+    if app.drawingOval:
+        x0, y0 = app.ovalToolStart
+        x1, y1 = app.ovalToolEnd
+        centerX, centerY = (x0 + x1)//2, (y0 + y1)//2
+        drawOval(centerX, centerY, x1 - x0, y1 - y0, fill = None, border = 'black')
+
+    if app.drawingDrag:
+        startX, startY = app.dragStart
+        endX, endY = app.dragEnd
+        #make them move!!
+        drawRect(startX, startY, endX - startX, endY - startY, fill = None, border = 'black', dashes = True)
+
+
 ####IMAGE SCREEN####
 def image_onMousePress(app, mouseX, mouseY):
-    app.selectColorDropper = app.dragSelection = app.fillSelection = app.circleTool = app.rectTool = False
+    app.selectColorDropper = app.dragSelection = app.fillSelection = app.ovalTool = app.rectTool = False
 
     #checks if checked aspect ratio button
     if 760 <= mouseX <= 780 and 40 <= mouseY <= 60:
