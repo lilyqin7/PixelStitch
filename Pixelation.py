@@ -1,17 +1,25 @@
-#could also make it so the slider only works to preserve the original aspect ratio of the image
-    #keep aspect ratio button????
+####FEATURES I STILL NEED TO DO####
+###################################
+# "move" selection on diy screen
+# select all instances of a color to change on diy screen
+# drag in specific shapes on diy screen
+# scroll bar
+# maybe "AI" image chooser based on categories user selects
 
-#also need to move grid over a bit
+####NOTES####
+# adjust the edge cases for aspect ratio and sliders
 
+#tree image from Pixabay via Pexel
 
 from cmu_graphics import *
 from urllib.request import urlopen
 from PIL import Image
 import copy
+import os
 
-def loadPilImage(url):
-    image = Image.open(urlopen(url))
-    return image.convert('RGB')
+# def loadPilImage(url):
+#     image = Image.open(urlopen(url))
+#     return image.convert('RGB')
 
 def onAppStart(app):
     #for both diy and image screens
@@ -25,34 +33,42 @@ def onAppStart(app):
     app.selectColorWheel = False
     app.colorDropperColor = None
     #image from clipartmax
-    wheel = Image.open('clipart835798.png')
+    wheel = Image.open('colorwheel.png')
     app.colorWheel = wheel.resize((100, 100))
     app.selectedFromColorWheel = False
     app.selectedColorFromWheel = (0, 0, 0)
 
+    #editing tools
+    app.dragSelection = False
+    app.fillSelection = False
+    app.circleTool = False
+    app.rectTool = False
+
     #####variables for image####
 
     # url = 'https://www.w3schools.com/images/picture.jpg'
-    url = 'https://tinyurl.com/great-pitch-gif'
+    #image from PIL demos
+    # url = 'https://tinyurl.com/great-pitch-gif'
     #loadPilImage only loads some images???
 
     #turns url into PIL image
-    app.pilImage = loadPilImage(url)
+    # app.pilImage = loadPilImage(url)
     
-    # app.pilImage = Image.open('tree-736885_1280 (1).jpg').convert('RGB')
+    app.pilImage = Image.open(os.path.join('images', 'tree.png')).convert('RGB')
 
+    app.originalImageWidth, app.originalImageHeight = app.pilImage.size
     app.imageWidth, app.imageHeight = app.pilImage.size
 
     #sets necessary variables for controlling size/pixels of image
-    app.imagePixelsWide = app.imagePixelsTall = 20
+    app.imagePixelsWide, app.imagePixelsTall = 20, 30
     app.imageWidthSlider = app.imageHeightSlider = 100
 
     #changes size of image so the pixels are square
     changeImageDimensions(app)
     
     #changes PIL image to CMU image
-    app.cmuImage = CMUImage(pixelate(app.pilImage, app.imagePixelsWide, 
-                                     app.imagePixelsTall, app.imageWidth, app.imageHeight))
+    # app.cmuImage = CMUImage(pixelate(app.pilImage, app.imagePixelsWide, 
+                                    #  app.imagePixelsTall, app.imageWidth, app.imageHeight))
 
     #create dictionary to store all the hex codes and the frequency they appear
     app.hexCodeToFrequency = calculateHexCodes(app, app.pilImage)
@@ -74,13 +90,14 @@ def onAppStart(app):
 
     #variables for color select
     app.imageColorSelect = None
-    app.imageMouseX = 0
-    app.imageMouseY = 0
+    app.imageMouseX = app.imageMouseY = 0
+
+    app.preserveAspectRatio = False
 
     ####variables for diy####
 
     #sets necessary variables for controlling size/pixels of diy
-    app.diyPixelsWide = app.diyPixelsTall = 20
+    app.diyPixelsWide, app.diyPixelsTall = 20, 30
     app.diyWidthSlider = app.diyHeightSlider = 100
 
     #variables for drawing board
@@ -91,8 +108,7 @@ def onAppStart(app):
     #variables for color select
     app.colorSelect = None
     app.diyColorSelect = None
-    app.diyMouseX = 0
-    app.diyMouseY = 0
+    app.diyMouseX = app.diyMouseY = 0
 
     #colors on screen
     app.diyColors = ['pink', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'white', 'black', 'brown']
@@ -132,7 +148,6 @@ def calculateMostFrequentHex(app):
             j += 1
     return frequent
    
-
 #goes through all x and y computer pixels and calculates the frequncy of each color
 def calculateHexCodes(app, pilImage):
     d = {}
@@ -155,9 +170,10 @@ def changeImageDimensions(app):
 ##ADJUSTS GRIDS##
 def image_change(app):
     (app.imageWidthSlider, app.imageHeightSlider, app.imagePixelsWide, 
-     app.imagePixelsTall) = calculateGridDimensions(app.imageWidthSlider, 
-                                                     app.imageHeightSlider,
-                                                     app.imagePixelsWide, app.imagePixelsTall)
+     app.imagePixelsTall) = calculateGridDimensions(app, app.imageWidthSlider, 
+                                                    app.imageHeightSlider,
+                                                    app.imagePixelsWide, app.imagePixelsTall)
+
     changeImageDimensions(app)
     app.imageBoard = resizingBoard(app, app.imageBoard, app.imagePixelsWide, app.imagePixelsTall)
     app.imageBoardLeft = app.width/2 + 47 - app.imagePixelsWide * 5
@@ -175,7 +191,7 @@ def image_change(app):
 
 def diy_change(app):
     (app.diyWidthSlider, app.diyHeightSlider, app.diyPixelsWide, 
-    app.diyPixelsTall) = calculateGridDimensions(app.diyWidthSlider, 
+    app.diyPixelsTall) = calculateGridDimensions(app, app.diyWidthSlider, 
                                                    app.diyHeightSlider, 
                                                    app.diyPixelsWide, app.diyPixelsTall)
     
@@ -277,129 +293,12 @@ def getGradientColor(app, mouseX, x0, x1, startColor, middleColor, endColor):
     return (int(r), int(g), int(b))
 
 #changes pixelsWide and pixelsTall when bar is slid in increments of 5 pixels
-def calculateGridDimensions(widthSlider, heightSlider, pixelsWide, pixelsTall):
+def calculateGridDimensions(app, widthSlider, heightSlider, pixelsWide, pixelsTall):
     #changes width display
-    if 25 <= widthSlider < 30:
-        pixelsWide = 5
-    elif 30 <= widthSlider < 35:
-        pixelsWide = 6
-    elif 35 <= widthSlider < 40:
-        pixelsWide = 7
-    elif 40 <= widthSlider < 45:
-        pixelsWide = 8
-    elif 45 <= widthSlider < 50:
-        pixelsWide = 9
-    elif 50 <= widthSlider < 55:
-        pixelsWide = 10
-    elif 55 <= widthSlider < 60:
-        pixelsWide = 11
-    elif 60 <= widthSlider < 65:
-        pixelsWide = 12
-    elif 65 <= widthSlider < 70:
-        pixelsWide = 13
-    elif 70 <= widthSlider < 75:
-        pixelsWide = 14
-    elif 75 <= widthSlider < 80:
-        pixelsWide = 15
-    elif 80 <= widthSlider < 85:
-        pixelsWide = 16
-    elif 85 <= widthSlider < 90:
-        pixelsWide = 17
-    elif 90 <= widthSlider < 95:
-        pixelsWide = 18
-    elif 95 <= widthSlider < 100:
-        pixelsWide = 19
-    elif 100 <= widthSlider < 105:
-        pixelsWide = 20
-    elif 105 <= widthSlider < 110:
-        pixelsWide = 21
-    elif 110 <= widthSlider < 115:
-        pixelsWide = 22
-    elif 115 <= widthSlider < 120:
-        pixelsWide = 23
-    elif 120 <= widthSlider < 125:
-        pixelsWide = 24
-    elif 125 <= widthSlider < 130:
-        pixelsWide = 25
-    elif 130 <= widthSlider < 135:
-        pixelsWide = 26
-    elif 135 <= widthSlider < 140:
-        pixelsWide = 27
-    elif 140 <= widthSlider < 145:
-        pixelsWide = 28
-    elif 145 <= widthSlider < 150:
-        pixelsWide = 29
-    elif 150 <= widthSlider < 155:
-        pixelsWide = 30
-    elif 155 <= widthSlider < 160:
-        pixelsWide = 31
-    elif 160 <= widthSlider < 165:
-        pixelsWide = 32
-    elif 165 <= widthSlider < 170:
-        pixelsWide = 33
-    elif 170 <= widthSlider <= 175:
-        pixelsWide = 34
+    pixelsWide = int(widthSlider//5)
     #changes height display
-    if 25 <= heightSlider < 30:
-        pixelsTall = 5
-    elif 30 <= heightSlider < 35:
-        pixelsTall = 6
-    elif 35 <= heightSlider < 40:
-        pixelsTall = 7
-    elif 40 <= heightSlider < 45:
-        pixelsTall = 8
-    elif 45 <= heightSlider < 50:
-        pixelsTall = 9
-    elif 50 <= heightSlider < 55:
-        pixelsTall = 10
-    elif 55 <= heightSlider < 60:
-        pixelsTall = 11
-    elif 60 <= heightSlider < 65:
-        pixelsTall = 12
-    elif 65 <= heightSlider < 70:
-        pixelsTall = 13
-    elif 70 <= heightSlider < 75:
-        pixelsTall = 14
-    elif 75 <= heightSlider < 80:
-        pixelsTall = 15
-    elif 80 <= heightSlider < 85:
-        pixelsTall = 16
-    elif 85 <= heightSlider < 90:
-        pixelsTall = 17
-    elif 90 <= heightSlider < 95:
-        pixelsTall = 18
-    elif 95 <= heightSlider < 100:
-        pixelsTall = 19
-    elif 100 <= heightSlider < 105:
-        pixelsTall = 20
-    elif 105 <= heightSlider < 110:
-        pixelsTall = 21
-    elif 110 <= heightSlider < 115:
-        pixelsTall = 22
-    elif 115 <= heightSlider < 120:
-        pixelsTall = 23
-    elif 120 <= heightSlider < 125:
-        pixelsTall = 24
-    elif 125 <= heightSlider < 130:
-        pixelsTall = 25
-    elif 130 <= heightSlider < 135:
-        pixelsTall = 26
-    elif 135 <= heightSlider < 140:
-        pixelsTall = 27
-    elif 140 <= heightSlider < 145:
-        pixelsTall = 28
-    elif 145 <= heightSlider < 150:
-        pixelsTall = 29
-    elif 150 <= heightSlider < 155:
-        pixelsTall = 30
-    elif 155 <= heightSlider < 160:
-        pixelsTall = 31
-    elif 160 <= heightSlider < 165:
-        pixelsTall = 32
-    elif 165 <= heightSlider < 170:
-        pixelsTall = 33
-    elif 170 <= heightSlider <= 175:
-        pixelsTall = 34
+    pixelsTall = int(heightSlider*3/10)
+
     return widthSlider, heightSlider, pixelsWide, pixelsTall
 
 def drawControls(app, widthSlider, heightSlider, pixelsWide, pixelsTall):
@@ -429,6 +328,23 @@ def drawControls(app, widthSlider, heightSlider, pixelsWide, pixelsTall):
     #generate pattern button
     drawRect(650, 450, 100, 30, fill = 'pink')
     drawLabel('Generate', 700, 465, size = 15)
+
+    drawLabel('Tools', 100, 320)
+
+    #images from iconmonstr
+    #select and move tool
+    drawImage('move icon.png', 28.25, 348.25, width = 30, height = 30)
+    #fill tool
+    drawImage('fill icon.png', 65.75, 348.25, width = 30, height = 30)
+    #square tool
+    drawImage('square icon.png', 103.25, 348.25, width = 30, height = 30)
+    #circle tool
+    drawImage('circle icon.png', 141.75, 349.25, width = 28, height = 28)
+
+    #draws outlines
+    for i in range(4):
+        drawRect(25 + i * 37.5, 345, 37.5, 37.5, fill = None, border = 'black', borderWidth = 1)
+    drawRect(25, 345, 150, 37.5, fill = None, border = 'black')
 
 #with assistance from chatGPT
 def drawTeardrop(centerX, centerY, width, height, fillColor):
@@ -475,12 +391,12 @@ def drawColorPanel(app, colorList, mouseX, mouseY):
 
     #color dropper
     #image from Icon Archive
-    drawImage('Icons8-Ios7-Editing-Color-Dropper.512.png', 670.5, 156.5, width = 15, height = 15)
+    drawImage('color dropper.png', 670.5, 156.5, width = 15, height = 15)
     drawRect(668, 154, 20, 20, fill = None, border = 'black')
 
     #color wheel
     #image from PNGWing
-    drawImage('pngwing.com (1).png', 688.5, 156.5, width = 15, height = 15)
+    drawImage('colorwheel icon.png', 688.5, 156.5, width = 15, height = 15)
     drawRect(686, 154, 20, 20, fill = None, border = 'black')
 
     #draws color wheel
@@ -521,6 +437,9 @@ def checkColorControls(app, mouseX, mouseY):
     if 668 <= mouseX <= 686 and 154 <= mouseY <= 172:
         app.selectColorDropper = not app.selectColorDropper
 
+    if app.selectColorDropper:
+        app.colorSelect = None
+
     #checks if pressing on color wheel icon
     if 686 <= mouseX <= 704 and 154 <= mouseY <= 172:
         app.selectColorWheel = not app.selectColorWheel
@@ -541,13 +460,32 @@ def checkButtons(app, mouseX, mouseY):
         setActiveScreen('result')
 
 def drawUserColorSelection(app, mouseX, mouseY):
-    #if mouse hovering over valid color, draw teardrop so user can see color
-    if app.colorSelect != None:
-        drawTeardrop(mouseX, mouseY, 10, 10, app.colorSelect)
-
-    #if user has selected color dropper, draw so can see
     if app.selectColorDropper == True:
-        drawImage('Icons8-Ios7-Editing-Color-Dropper.512.png', mouseX, mouseY, width = 15, height = 15)
+        drawImage('color dropper.png', mouseX, mouseY, width = 15, height = 15)
+
+def checkEditingTools(app, mouseX, mouseY):
+    if 345 <= mouseY <= 382:
+        if 25 <= mouseX < 62:
+            app.dragSelection = not app.dragSelection
+        elif 62 <= mouseX < 100:
+            app.fillSelection = not app.fillSelection
+        elif 100 <= mouseX < 137:
+            app.rectTool = not app.rectTool
+        elif 137 <= mouseX <= 175:
+            app.circleTool = not app.circleTool
+
+def drawEditingTools(app, mouseX, mouseY):
+    if app.dragSelection == True:
+        drawImage('move icon.png', mouseX, mouseY, width = 20, height = 20)
+    if app.fillSelection == True:
+        drawImage('fill icon.png', mouseX, mouseY, width = 20, height = 20)
+    if app.circleTool == True:
+        drawImage('circle icon.png', mouseX, mouseY, width = 20, height = 20)
+    if app.rectTool == True:
+        drawImage('square icon.png', mouseX, mouseY, width = 20, height = 20)
+
+# def fillTool(app, mouseX, mouseY, board):
+#     startX = 
 
 ##DRAWS THE GRID##
 #modified from Tetris creative task
@@ -579,10 +517,10 @@ def diy_onMouseMove(app, mouseX, mouseY):
     mouseMove(app, mouseX, mouseY, app.diyColors)
 
     if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
-        row, col = findSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
-        if app.diyBoard[row][col] != None:
-            if app.selectColorDropper == True:
-                findColorDropperColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyBoardLeft, app.diyPixelsTall)
+        if app.selectColorDropper == True:
+            row, col = findSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
+            findColorDropperColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyBoardLeft, app.diyPixelsTall)
+            app.colorSelect = app.diyBoard[row][col]
         else:
             app.colorDropperColor = None
     
@@ -592,54 +530,99 @@ def diy_onMouseDrag(app, mouseX, mouseY):
     app.diyBoard = updateColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
 
 def diy_onMousePress(app, mouseX, mouseY):
-    app.selectColorDropper = False
+    app.selectColorDropper = app.dragSelection = app.fillSelection = app.circleTool = app.rectTool = False
 
     if app.colorSelect != None:
         app.diyColorSelect = app.colorSelect
         
     app.diyWidthSlider, app.diyHeightSlider = mousePress(app, mouseX, mouseY, app.diyWidthSlider, app.diyHeightSlider)
-    checkButtons(app, mouseX, mouseY)
     diy_change(app)
     app.diyBoard = updateColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
+    checkButtons(app, mouseX, mouseY)
     checkColorControls(app, mouseX, mouseY)
+    checkEditingTools(app, mouseX, mouseY)
 
 def diy_redrawAll(app):
     drawGrid(app, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, 447)
     drawControls(app, app.diyWidthSlider, app.diyHeightSlider, app.diyPixelsWide, app.diyPixelsTall)
     drawColorPanel(app, app.diyColors, app.diyMouseX, app.diyMouseY)
     drawUserColorSelection(app, app.diyMouseX, app.diyMouseY)
+    drawEditingTools(app, app.diyMouseX, app.diyMouseY)
 
 ####IMAGE SCREEN####
 def image_onMousePress(app, mouseX, mouseY):
-    app.selectColorDropper = False
+    app.selectColorDropper = app.dragSelection = app.fillSelection = app.circleTool = app.rectTool = False
+
+    #checks if checked aspect ratio button
+    if 760 <= mouseX <= 780 and 40 <= mouseY <= 60:
+        app.preserveAspectRatio = not app.preserveAspectRatio
 
     #if mouse hovering over valid color option and user presses, assigns "brush" as that color
     if app.colorSelect != None:
         app.imageColorSelect = app.colorSelect
 
-    #adjusts the width sliders
     oldWidth, oldHeight = app.imageWidthSlider, app.imageHeightSlider
-    app.imageWidthSlider, app.imageHeightSlider = mousePress(app, mouseX, mouseY, app.imageWidthSlider, app.imageHeightSlider)
-    checkButtons(app, mouseX, mouseY)
+    if app.preserveAspectRatio:
+        widthToHeightRatio = app.originalImageWidth/app.originalImageHeight
+        #if user just checked aspect ratio box and hasn't adjusted controls
+        app.imageWidthSlider = int(widthToHeightRatio * app.imageHeightSlider * 3/2)
+        if 130 <= mouseY <= 160 and 25 <= mouseX <= 175:
+            app.imageWidthSlider = mouseX
+            app.imageHeightSlider = app.imageWidthSlider / widthToHeightRatio * 2/3
+        elif 210 <= mouseY <= 240 and 25 <= mouseX <= 175:
+            app.imageHeightSlider = mouseX
+            app.imageWidthSlider = app.imageHeightSlider * widthToHeightRatio * 3/2
+    
+        if app.imageHeightSlider > 175:
+                app.imageHeightSlider = 175
+                app.imageWidthSlider = app.imageHeightSlider * widthToHeightRatio * 3/2
+        elif app.imageHeightSlider < 25:
+                app.imageHeightSlider = 25
+                app.imageWidthSlider = app.imageHeightSlider * widthToHeightRatio * 3/2
+
+        if app.imageWidthSlider > 175:
+                app.imageWidthSlider = 175
+                app.imageHeightSlider = app.imageWidthSlider / widthToHeightRatio * 2/3
+        elif app.imageWidthSlider < 25:
+                app.imageWidthSlider = 25
+                app.imageHeightSlider = app.imageWidthSlider / widthToHeightRatio * 2/3
+
+    else:
+        app.imageWidthSlider, app.imageHeightSlider = mousePress(app, mouseX, mouseY, app.imageWidthSlider, app.imageHeightSlider)
+    
     if oldWidth != app.imageWidthSlider or oldHeight != app.imageHeightSlider:
         image_change(app)
-
+    
     #starts filling in squares
     if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
         row, col = findSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop)
         app.imageBoard[row][col] = app.imageColorSelect
 
+    checkButtons(app, mouseX, mouseY)
     checkColorControls(app, mouseX, mouseY)
+    checkEditingTools(app, mouseX, mouseY)
 
 def image_onMouseDrag(app, mouseX, mouseY):
-    #changes width
-    if 130 <= mouseY and mouseY <= 160 and abs(mouseX - app.imageWidthSlider) <= 15:
-        app.imageWidthSlider = max(25, min(mouseX, 175))     
-        image_change(app)   
-    #changes height
-    elif 210 <= mouseY and mouseY <= 240 and abs(mouseX - app.imageHeightSlider) <= 15:
-        app.imageHeightSlider = max(25, min(mouseX, 175))
-        #change labels and pixelization image
+    oldWidth, oldHeight = app.imageWidthSlider, app.imageHeightSlider
+    if app.preserveAspectRatio:
+        widthToHeightRatio = app.originalImageWidth/app.originalImageHeight
+        #if user just checked aspect ratio box and hasn't adjusted controls
+        app.imageWidthSlider = widthToHeightRatio * app.imageHeightSlider * 3/2
+        if 130 <= mouseY <= 160 and 25 <= mouseX <= 175:
+            app.imageWidthSlider = mouseX
+            app.imageHeightSlider = app.imageWidthSlider / widthToHeightRatio * 2/3
+        elif 210 <= mouseY <= 240 and 25 <= mouseX <= 175:
+            app.imageHeightSlider = mouseX
+            app.imageWidthSlider = app.imageHeightSlider * widthToHeightRatio * 3/2
+    else:
+        #changes width
+        if 130 <= mouseY <= 160 and abs(mouseX - app.imageWidthSlider) <= 15:
+            app.imageWidthSlider = max(25, min(mouseX, 175))   
+        #changes height
+        elif 210 <= mouseY <= 240 and abs(mouseX - app.imageHeightSlider) <= 15:
+            app.imageHeightSlider = max(25, min(mouseX, 175))
+            #change labels and pixelization image
+    if oldWidth != app.imageWidthSlider or oldHeight != app.imageHeightSlider:
         image_change(app)
 
     if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
@@ -666,6 +649,33 @@ def image_redrawAll(app):
     drawGrid(app, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, 447)
     drawColorPanel(app, app.mostFrequentHex, app.imageMouseX, app.imageMouseY)
     drawUserColorSelection(app, app.imageMouseX, app.imageMouseY)
+
+    #preserve aspect ratio checkbox
+    drawLabel('Preserve Aspect Ratio:', 690, 50)
+    color = None
+    if app.preserveAspectRatio == True:
+        color = 'pink'
+        #draw white checkmark
+    drawRect(760, 40, 20, 20, fill = color, border = 'black')
+
+####CHOOSE IMAGE SCREEN####
+def imageOptions_onMousePress(app, mouseX, mouseY):
+    if 650 <= mouseX <= 750 and 450 <= mouseY <= 480:
+        setActiveScreen('image')
+    elif 50 <= mouseX <= 150 and 450 <= mouseY <= 480:
+        setActiveScreen('start')
+
+def imageOptions_redrawAll(app):
+    drawLabel('Choose an Image:', app.width/2, app.height/6, size = 30)
+
+    #draw images
+
+    #create button
+    drawRect(650, 450, 100, 30, fill = 'pink')
+    drawLabel('Create', 700, 465, size = 15)
+    #back button
+    drawRect(50, 450, 100, 30, fill = 'pink')
+    drawLabel('Back', 100, 465, size = 15)
 
 ####RESULT SCREEN####
 def result_onMousePress(app, mouseX, mouseY):
@@ -696,12 +706,10 @@ def start_onMousePress(app, mouseX, mouseY):
         setActiveScreen('diy')
         app.prevScreen = 'diy'
     elif app.width*7/12 <= mouseX <= app.width*11/12 and app.height*102/160 <= mouseY <= app.height*122/160:
-        setActiveScreen('image')
+        setActiveScreen('imageOptions')
         app.prevScreen = 'image'
 
 def start_redrawAll(app):
-    # drawImage('tree-736885_1280 (1).jpg', 0, 0)
-    # drawImage(app.cmuImage, 0, 0)
     drawLabel('DIY or image?', app.width/2, app.height/2, size = 40)
     drawRect(app.width/4, app.height * 7/10, app.width/3, app.height/8, fill = 'pink', align = 'center')
     drawLabel('DIY', app.width/4, app.height * 7/10, size = 25)
