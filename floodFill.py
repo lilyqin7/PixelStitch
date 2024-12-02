@@ -38,36 +38,28 @@ def isLegalMove(app, startRow, startCol, drow, dcol, board):
         return True
     return False
 
-def findBoundedSquaresHelper(app, pressedRow, pressedCol, boundedSquares, board):
-    app.boundaries = isBounded(app, pressedRow, pressedCol, board)
-    minRow, minCol, maxRow, maxCol = findMinMaxFillBoundaries(app, app.boundaries)
-    for row in range(minRow, maxRow):
-        for col in range(minCol, maxCol):
-            if inBounds(app, row, col):
-                boundedSquares.append((row, col))
-    return boundedSquares
-
 def findMinMaxFillBoundaries(app, boundaries):
     maxRow, maxCol = 0, 0
-    for coordinate in boundaries:
-        if coordinate[0] > maxRow:
-            maxRow = coordinate[0]
-        if coordinate[1] > maxCol:
-            maxCol = coordinate[1]
-    minRow, minCol = maxRow, maxCol
-    for coordinate in boundaries: 
-        if coordinate[0] < minRow:
-            minRow = coordinate[0]
-        if coordinate[1] < minCol:
-            minCol = coordinate[1]
-    return minRow, minCol, maxRow, maxCol
+    if boundaries != False:
+        for coordinate in boundaries:
+            if coordinate[0] > maxRow:
+                maxRow = coordinate[0]
+            if coordinate[1] > maxCol:
+                maxCol = coordinate[1]
+        minRow, minCol = maxRow, maxCol
+        for coordinate in boundaries: 
+            if coordinate[0] < minRow:
+                minRow = coordinate[0]
+            if coordinate[1] < minCol:
+                minCol = coordinate[1]
+        return minRow, minCol, maxRow, maxCol
 
 def inBounds(app, selectedRow, selectedCol):
     #holds column indicies
-    currentRow = []
+    currentRow = set()
     for coordinate in app.boundaries:
         if coordinate[0] == selectedRow:
-            currentRow.append(coordinate[1])
+            currentRow.add(coordinate[1])
     #if the selected column is on the boundaries
     if selectedCol in currentRow:
         return False
@@ -78,10 +70,20 @@ def inBounds(app, selectedRow, selectedCol):
         return False
     
     return True
-    
+
+def findBoundedSquaresHelper(app, pressedRow, pressedCol, boundedSquares, board):
+    app.boundaries = isBounded(app, pressedRow, pressedCol, board)
+    if app.boundaries:
+        minRow, minCol, maxRow, maxCol = findMinMaxFillBoundaries(app, app.boundaries)
+        for row in range(minRow, maxRow):
+            for col in range(minCol, maxCol):
+                if inBounds(app, row, col):
+                    boundedSquares.add((row, col))
+    return boundedSquares
+
 def findBoundedSquares(app, mouseX, mouseY, board, boardLeft, boardTop):
     pressedRow, pressedCol = findSquare(app, mouseX, mouseY, board, boardLeft, boardTop)
-    return findBoundedSquaresHelper(app, pressedRow, pressedCol, [], board)
+    return findBoundedSquaresHelper(app, pressedRow, pressedCol, set(), board)
 
 def fillShape(app, color, mouseX, mouseY, board, boardLeft, boardTop):
     squares = findBoundedSquares(app, mouseX, mouseY, board, boardLeft, boardTop)

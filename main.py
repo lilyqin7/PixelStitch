@@ -5,31 +5,86 @@
 # drag in specific shapes on diy screen
     # make them better
 # scroll bar
-# fill tool
 # maybe random image chooser based on categories user selects
 
-####ASK HOW TO CITE STUFF(just website link or link to image)
-
-#tree image from Pixabay via Pexel (1)
-#(2-8) from FreePik
-
 from cmu_graphics import *
-from urllib.request import urlopen
+# from urllib.request import urlopen
 from PIL import Image
-import copy
+# import copy
 import os
 import time
 from drawGrid import drawGrid
 from hexCodeFunctions import calculateMostFrequentHex, calculateHexCodes
 from squareFunctions import isSquare, findSquare
 from floodFill import fillShape
+from buttons import Button
 
 def onAppStart(app):
-    #for both diy and image screens
-    app.cellBorderWidth = 1
     #screen dimensions 
     app.width = 800
-    app.height = 500    
+    app.height = 500
+
+    app.highlighted = False
+    app.diyButton = Button('DIY', app.width/12, app.height * 7/10, app.width/3, app.height/8, 25)
+    app.imageButton = Button('Image', app.width*7/12, app.height*7/10, app.width/3, app.height/8, 25)
+    
+    app.currentScreen = 'start'
+    app.prevScreen = 'start'
+
+    ####variables for diy####
+
+    #sets necessary variables for controlling size/pixels of diy
+    app.diyPixelsWide, app.diyPixelsTall = 20, 30
+    app.diyWidthSlider = app.diyHeightSlider = 100
+
+    #variables for drawing board
+    app.diyBoard = [([None] * app.diyPixelsWide) for row in range(app.diyPixelsTall)]
+    app.diyBoardLeft = app.width/2 + 47 - app.diyPixelsWide * 5 
+    app.diyBoardTop = app.height/2 - app.diyPixelsTall * 5
+
+    #variables for color select
+    app.colorSelect = None
+    app.diyColorSelect = None
+    app.diyMouseX = app.diyMouseY = 0
+
+    #colors on screen
+    app.diyColors = ['pink', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'white', 'black', 'brown']
+
+
+    #####variables for image####
+
+    app.pilImage = Image.open(os.path.join('images', '2.png')).convert('RGB')
+
+    app.originalImageWidth, app.originalImageHeight = app.pilImage.size
+
+    app.imageWidth, app.imageHeight = app.pilImage.size
+
+    #sets necessary variables for controlling size/pixels of image
+    app.imagePixelsWide, app.imagePixelsTall = 20, 30
+    app.imageWidthSlider = app.imageHeightSlider = 100
+
+    #changes size of image so the pixels are square
+    changeImageDimensions(app)
+
+    #create dictionary to store all the hex codes and the frequency they appear
+    app.hexCodeToFrequency = calculateHexCodes(app, app.pilImage)
+    app.mostFrequentHex = calculateMostFrequentHex(app)
+
+    #variables for drawing board
+    app.imageBoard = [([None] * app.imagePixelsWide) for row in range(app.imagePixelsTall)]
+    app.imageBoardLeft = app.width/2 + 47 - app.imagePixelsWide * 5
+    app.imageBoardTop = app.height/2 - app.imagePixelsTall * 5
+    
+    pilImage = pixelate(app.pilImage, app.imagePixelsWide, 
+                        app.imagePixelsTall, app.imageWidth, app.imageHeight)
+    
+    updateImageBoard(app, pilImage)
+
+    #variables for color select
+    app.imageColorSelect = None
+    app.imageMouseX = app.imageMouseY = 0
+
+    app.preserveAspectRatio = False
 
     #color dropper and color wheel tool
     app.selectColorDropper = False
@@ -78,71 +133,18 @@ def onAppStart(app):
     app.lastClickTime = 0
     app.doubleClickColor = None
 
-    #####variables for image####
+####USED ON IMAGE SCREEN
+def pixelate(image, pixelsWide, pixelsTall, width, height):
+    image = image.resize((pixelsWide, pixelsTall), Image.NEAREST)
+    return image.resize((width, height), Image.NEAREST)
 
-    app.pilImage = Image.open(os.path.join('images', '2.png')).convert('RGB')
-
-    app.originalImageWidth, app.originalImageHeight = app.pilImage.size
-
-    app.imageWidth, app.imageHeight = app.pilImage.size
-
-    #sets necessary variables for controlling size/pixels of image
-    app.imagePixelsWide, app.imagePixelsTall = 20, 30
-    app.imageWidthSlider = app.imageHeightSlider = 100
-
-    #changes size of image so the pixels are square
-    changeImageDimensions(app)
-
-    #create dictionary to store all the hex codes and the frequency they appear
-    app.hexCodeToFrequency = calculateHexCodes(app, app.pilImage)
-    app.mostFrequentHex = calculateMostFrequentHex(app)
-
-    #variables for drawing board
-    app.imageBoard = [([None] * app.imagePixelsWide) for row in range(app.imagePixelsTall)]
-    app.imageBoardLeft = app.width/2 + 47 - app.imagePixelsWide * 5
-    app.imageBoardTop = app.height/2 - app.imagePixelsTall * 5
-    
-    pilImage = pixelate(app.pilImage, app.imagePixelsWide, 
-                        app.imagePixelsTall, app.imageWidth, app.imageHeight)
-    
-    #update app.imageBoard with the appropriate colors
+#update app.imageBoard with the appropriate colors
+def updateImageBoard(app, pilImage):
     for row in range(app.imagePixelsTall):
         for col in range(app.imagePixelsWide):
             color = pilImage.getpixel((col * 10 + 5, row * 10 + 5))
             rgbColor = rgb(color[0], color[1], color[2])
             app.imageBoard[row][col] = rgbColor
-
-    #variables for color select
-    app.imageColorSelect = None
-    app.imageMouseX = app.imageMouseY = 0
-
-    app.preserveAspectRatio = False
-
-    ####variables for diy####
-
-    #sets necessary variables for controlling size/pixels of diy
-    app.diyPixelsWide, app.diyPixelsTall = 20, 30
-    app.diyWidthSlider = app.diyHeightSlider = 100
-
-    #variables for drawing board
-    app.diyBoard = [([None] * app.diyPixelsWide) for row in range(app.diyPixelsTall)]
-    app.diyBoardLeft = app.width/2 + 47 - app.diyPixelsWide * 5 
-    app.diyBoardTop = app.height/2 - app.diyPixelsTall * 5
-
-    #variables for color select
-    app.colorSelect = None
-    app.diyColorSelect = None
-    app.diyMouseX = app.diyMouseY = 0
-
-    #colors on screen
-    app.diyColors = ['pink', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'white', 'black', 'brown']
-
-    app.prevScreen = 'start'
-
-####USED ON IMAGE SCREEN
-def pixelate(image, pixelsWide, pixelsTall, width, height):
-    image = image.resize((pixelsWide, pixelsTall), Image.NEAREST)
-    return image.resize((width, height), Image.NEAREST)
 
 #changes image size based on pixels (they should be square)
 def changeImageDimensions(app):
@@ -485,27 +487,6 @@ def checkDoubleClick(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide
         app.lastClickTime = currentTime
         app.clickPosition = (mouseX, mouseY)
 
-
-####DIY SCREEN####
-def diy_onMouseMove(app, mouseX, mouseY):
-    #for double click
-    if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
-        row, col = findSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
-        app.doubleClickColor = app.diyBoard[row][col]
-
-    app.diyMouseX, app.diyMouseY = mouseX, mouseY
-    mouseMove(app, mouseX, mouseY, app.diyColors)
-
-    if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
-        if app.selectColorDropper == True:
-            row, col = findSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
-            findColorDropperColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyBoardLeft, app.diyPixelsTall)
-            app.colorSelect = app.diyBoard[row][col]
-        else:
-            app.colorDropperColor = None
-    
-    getColorWheelColor(app, mouseX, mouseY)
-
 def rectTool(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
         app.rectToolEnd = mouseX, mouseY
         xStart, yStart = app.rectToolStart
@@ -530,15 +511,41 @@ def ovalTool(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixels
                     row, col = findSquare(app, x, y, board, boardLeft, boardTop)
                     app.boardSelected.add((row, col))
 
+####DIY SCREEN####
+def diy_onMouseMove(app, mouseX, mouseY):
+    #for double click
+    if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, 
+                app.diyPixelsWide, app.diyPixelsTall):
+        row, col = findSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, 
+                              app.diyBoardTop)
+        app.doubleClickColor = app.diyBoard[row][col]
+
+    app.diyMouseX, app.diyMouseY = mouseX, mouseY
+    mouseMove(app, mouseX, mouseY, app.diyColors)
+
+    if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, 
+                app.diyPixelsWide, app.diyPixelsTall):
+        if app.selectColorDropper == True:
+            row, col = findSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
+            findColorDropperColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, 
+                                  app.diyBoardTop, app.diyBoardLeft, app.diyPixelsTall)
+            app.colorSelect = app.diyBoard[row][col]
+        else:
+            app.colorDropperColor = None
+    
+    getColorWheelColor(app, mouseX, mouseY)
+
 def diy_onMouseDrag(app, mouseX, mouseY):
     if app.drawingRect:
-        rectTool(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
+        rectTool(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, 
+                 app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
 
         #need to find way to make sure if user moves mouse the selected squares change too
         #maybe also make it so user can go other way too
 
     if app.drawingOval:
-        ovalTool(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
+        ovalTool(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, 
+                 app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
 
         #need to find way to make sure if user moves mouse the selected squares change too
 
@@ -565,7 +572,8 @@ def diy_onMouseDrag(app, mouseX, mouseY):
         #             app.boardSelected.add((row, col))
     # print(app.boardSelected)       
 
-    app.diyBoard = updateColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
+    app.diyBoard = updateColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, 
+                               app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
 
 def diy_onMousePress(app, mouseX, mouseY):
     if app.rectTool:
@@ -587,13 +595,16 @@ def diy_onMousePress(app, mouseX, mouseY):
     if app.colorSelect != None:
         app.diyColorSelect = app.colorSelect
 
-    app.diyWidthSlider, app.diyHeightSlider = mousePress(app, mouseX, mouseY, app.diyWidthSlider, app.diyHeightSlider)
+    app.diyWidthSlider, app.diyHeightSlider = mousePress(app, mouseX, mouseY, 
+                                                         app.diyWidthSlider, app.diyHeightSlider)
     diy_change(app)
-    app.diyBoard = updateColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
+    app.diyBoard = updateColor(app, mouseX, mouseY, app.diyBoard, 
+                               app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
     checkButtons(app, mouseX, mouseY)
     checkColorControls(app, mouseX, mouseY)
     checkEditingTools(app, mouseX, mouseY)
-    checkDoubleClick(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall, app.diyColorSelect)
+    checkDoubleClick(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, 
+                     app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall, app.diyColorSelect)
 
     if app.drawingRect:
         app.rectToolStart = mouseX, mouseY
@@ -604,8 +615,10 @@ def diy_onMousePress(app, mouseX, mouseY):
         app.ovalToolEnd = mouseX + 1, mouseY + 1
 
     if app.filling:
-        if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
-            app.diyBoard = fillShape(app, app.diyColorSelect, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
+        if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, 
+                    app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
+            app.diyBoard = fillShape(app, app.diyColorSelect, mouseX, mouseY, 
+                                     app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
 
     if app.drawingDrag:
         startX, startY = min(app.dragStart[0], app.dragEnd[0]), min(app.dragStart[1], app.dragEnd[1])
@@ -680,6 +693,9 @@ def image_onMousePress(app, mouseX, mouseY):
         app.drawingDrag = True
         app.moveShape = False
 
+    if app.fillSelection:
+        app.filling = True
+
     app.selectColorDropper = app.dragSelection = app.fillSelection = app.ovalTool = app.rectTool = False
     app.boardSelected = set()
 
@@ -719,20 +735,23 @@ def image_onMousePress(app, mouseX, mouseY):
                 app.imageHeightSlider = app.imageWidthSlider / widthToHeightRatio * 2/3
 
     else:
-        app.imageWidthSlider, app.imageHeightSlider = mousePress(app, mouseX, mouseY, app.imageWidthSlider, app.imageHeightSlider)
+        app.imageWidthSlider, app.imageHeightSlider = mousePress(app, mouseX, 
+                                                                 mouseY, app.imageWidthSlider, app.imageHeightSlider)
     
     if oldWidth != app.imageWidthSlider or oldHeight != app.imageHeightSlider:
         image_change(app)
     
     #starts filling in squares
-    if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
+    if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
+                app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
         row, col = findSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop)
         app.imageBoard[row][col] = app.imageColorSelect
 
     checkButtons(app, mouseX, mouseY)
     checkColorControls(app, mouseX, mouseY)
     checkEditingTools(app, mouseX, mouseY)
-    checkDoubleClick(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall, app.imageColorSelect)
+    checkDoubleClick(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
+                     app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall, app.imageColorSelect)
 
     if app.drawingRect:
         app.rectToolStart = mouseX, mouseY
@@ -742,14 +761,20 @@ def image_onMousePress(app, mouseX, mouseY):
         app.ovalToolStart = mouseX, mouseY
         app.ovalToolEnd = mouseX + 1, mouseY + 1
 
-
+    if app.filling:
+        if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
+                    app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
+            app.imageBoard = fillShape(app, app.imageColorSelect, mouseX, mouseY, 
+                                     app.imageBoard, app.imageBoardLeft, app.imageBoardTop)
 
 def image_onMouseDrag(app, mouseX, mouseY):
     if app.drawingRect:
-        rectTool(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall)
+        rectTool(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
+                 app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall)
 
     if app.drawingOval:
-        ovalTool(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall)
+        ovalTool(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
+                 app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall)
 
     oldWidth, oldHeight = app.imageWidthSlider, app.imageHeightSlider
     if app.preserveAspectRatio:
@@ -773,7 +798,9 @@ def image_onMouseDrag(app, mouseX, mouseY):
     if oldWidth != app.imageWidthSlider or oldHeight != app.imageHeightSlider:
         image_change(app)
 
-    if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall) and not app.drawingRect and not app.drawingOval:
+    if (isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
+                app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall) 
+                and not app.drawingRect and not app.drawingOval):
         row, col = findSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop)
         app.imageBoard[row][col] = app.imageColorSelect
 
@@ -783,7 +810,8 @@ def image_onMouseDrag(app, mouseX, mouseY):
 
 def image_onMouseMove(app, mouseX, mouseY):
     #for double click
-    if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
+    if (isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
+                 app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall)):
         row, col = findSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop)
         app.doubleClickColor = app.imageBoard[row][col]
 
@@ -791,10 +819,14 @@ def image_onMouseMove(app, mouseX, mouseY):
     mouseMove(app, mouseX, mouseY, app.mostFrequentHex)
 
     #checks if mouse is hovering over an image square
-    if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
+    if (isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
+                 app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall)):
         if app.selectColorDropper == True:
-            findColorDropperColor(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall)
-            row, col = findSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop)
+            findColorDropperColor(app, mouseX, mouseY, app.imageBoard, 
+                                  app.imageBoardLeft, app.imageBoardTop, 
+                                  app.imagePixelsWide, app.imagePixelsTall)
+            row, col = findSquare(app, mouseX, mouseY, app.imageBoard, 
+                                  app.imageBoardLeft, app.imageBoardTop)
             app.colorSelect = app.imageBoard[row][col]
         else:
             app.colorDropperColor = None
@@ -818,7 +850,8 @@ def image_onMouseRelease(app, mouseX, mouseY):
         app.drawingDrag = False
 
 def image_redrawAll(app):
-    drawControls(app, app.imageWidthSlider, app.imageHeightSlider, app.imagePixelsWide, app.imagePixelsTall)
+    drawControls(app, app.imageWidthSlider, app.imageHeightSlider, 
+                 app.imagePixelsWide, app.imagePixelsTall)
     drawGrid(app, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, 447)
     drawColorPanel(app, app.mostFrequentHex, app.imageMouseX, app.imageMouseY)
     drawUserColorSelection(app, app.imageMouseX, app.imageMouseY)
@@ -886,20 +919,27 @@ def result_redrawAll(app):
     drawRect(788, 0, 12, 50, fill = 'gray')
 
 ####START SCREEN####
+def start_onMouseMove(app, mouseX, mouseY):
+    app.highlighted = False
+    if app.diyButton.isSelected(mouseX, mouseY):
+        app.highlighted = True
+
 def start_onMousePress(app, mouseX, mouseY):
-    if app.width/12 <= mouseX <= app.width*5/12 and app.height*102/160 <= mouseY <= app.height*122/160:
+    if app.diyButton.isSelected(mouseX, mouseY):
         setActiveScreen('diy')
         app.prevScreen = 'diy'
-    elif app.width*7/12 <= mouseX <= app.width*11/12 and app.height*102/160 <= mouseY <= app.height*122/160:
+    elif app.imageButton.isSelected(mouseX, mouseY):
         setActiveScreen('imageOptions')
         app.prevScreen = 'image'
 
 def start_redrawAll(app):
     drawLabel('DIY or image?', app.width/2, app.height/2, size = 40)
-    drawRect(app.width/4, app.height * 7/10, app.width/3, app.height/8, fill = 'pink', align = 'center')
-    drawLabel('DIY', app.width/4, app.height * 7/10, size = 25)
-    drawRect(app.width*3/4, app.height * 7/10, app.width/3, app.height/8, fill = 'pink', align = 'center')
-    drawLabel('Image', app.width*3/4, app.height * 7/10, size = 25)
+
+    app.diyButton.drawButton()
+    app.imageButton.drawButton()
+
+    if app.highlighted:
+        app.diyButton.drawHighlight()
 
 def main():
     runAppWithScreens(initialScreen = 'start', width = app.width, height = app.height)

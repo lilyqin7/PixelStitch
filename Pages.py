@@ -2,10 +2,12 @@
 #change font!! for everything
 #also choose color scheme
 from cmu_graphics import *
+from buttons import Button
 
 def onAppStart(app):
     app.width = 800
     app.height = 500
+    app.instructionsButton = Button('Click here for instructions', app.width/3, app.height * 3/5, app.width/3, app.height/5, 20)
 
 def distance(x1, y1, x2, y2):
     return ((x2 - x1)**2 + (y2 - y1)**2)**0.5
@@ -14,15 +16,13 @@ def distance(x1, y1, x2, y2):
 def start_redrawAll(app):
     drawLabel('PixelStitch', app.width/2, app.height/2, size = 50)
     #draw a yarn ball and crochet hook or something for background aesthetic
-
+    app.instructionsButton.drawButton()
     #draw a label with 'instructions' that leads to instructions
-    drawRect(app.width/4, app.height * 3/5, app.width/2, app.height/5, fill = 'pink')
-    drawLabel('Click here for instructions', app.width/2, app.height * 7/10, size = 20)
+
 
 #if the user clicks within the 'Click here for instructions' box, take to instructions page
 def start_onMousePress(app, mouseX, mouseY):
-    if (mouseX >= app.width/4 and mouseX <= app.width * 3/4 and 
-        mouseY >= app.height *3/5 and mouseY <= app.height * 4/5):
+    if app.instructionsButton.isClicked(mouseX, mouseY):
         setActiveScreen('instructions')
 
 ####INSTRUCTIONS PAGE####

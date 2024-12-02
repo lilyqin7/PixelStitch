@@ -2,6 +2,8 @@ from cmu_graphics import *
 
 #modified from Tetris creative task: https://academy.cs.cmu.edu/exercise/24018
 
+app.cellBorderWidth = 1
+
 def drawGrid(app, board, boardLeft, boardTop, center):
     drawBoard(app, board, boardLeft, boardTop)
     drawBoardBorder(app, board, center)
