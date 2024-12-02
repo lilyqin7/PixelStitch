@@ -7,6 +7,9 @@
 # scroll bar
 # maybe random image chooser based on categories user selects
 
+#images: https://docs.google.com/document/d/1fT-UJPKzTpPlPjaDBd1HXdmDL1TBXOJUnp3GDQunrz8/edit?usp=sharing
+
+
 from cmu_graphics import *
 # from urllib.request import urlopen
 from PIL import Image

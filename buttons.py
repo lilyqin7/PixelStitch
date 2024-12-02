@@ -17,7 +17,7 @@ class Button:
             self.topEdge <= mouseY <= self.topEdge + self.height)
     
     def drawHighlight(self):
-        drawRect(self.leftEdge, self.topEdge, self.width, self.height, fill = None, border = 'black')
+        drawImage('buttonHighlight.png', self.leftEdge, self.topEdge, width = self.width, height = self.height)
             
     def drawButton(self):
         #image from https://stock.adobe.com/search?k=%22pink+button%22&asset_id=537039436
