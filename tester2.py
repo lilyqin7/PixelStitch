@@ -108,6 +108,7 @@ diyPixelsWide = 4
 diyPixelsTall = 4
 board = copy.deepcopy(diyBoard)
 numSquares = findNumSquaresToFill(board)
+print(numSquares)
 print(fillShape('blue', 15, 15))
 # print(findNumSquaresToFill())
 

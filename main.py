@@ -19,8 +19,10 @@ from PIL import Image
 import copy
 import os
 import time
+from drawGrid import drawGrid
 from hexCodeFunctions import calculateMostFrequentHex, calculateHexCodes
 from squareFunctions import isSquare, findSquare
+from floodFill import fillShape
 
 def onAppStart(app):
     #for both diy and image screens
@@ -52,6 +54,7 @@ def onAppStart(app):
     app.selectionHeight = 0
 
     app.fillSelection = False
+    app.filling = False
 
     app.ovalTool = False
     app.ovalToolStart = 0, 0
@@ -149,7 +152,7 @@ def changeImageDimensions(app):
 
 ####USED IN DIY SCREEN
 def updateColor(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
-    if not app.drawingRect and not app.drawingOval and not app.moveShape and not app.drawingDrag:
+    if not app.drawingRect and not app.drawingOval and not app.moveShape and not app.drawingDrag and not app.filling:
         if isSquare(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
             row, col = findSquare(app, mouseX, mouseY, board, boardLeft, boardTop)
             board[row][col] = app.diyColorSelect
@@ -482,119 +485,6 @@ def checkDoubleClick(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide
         app.lastClickTime = currentTime
         app.clickPosition = (mouseX, mouseY)
 
-#fill tool#
-#kinda broken
-def isBounded(app, row, col):
-    if app.diyBoard[row][col] != None:
-        return False
-    else:
-        for startRow in range(len(app.diyBoard)):
-            for startCol in range(len(app.diyBoard[0])):
-                if (startRow, startCol) != (row, col):
-                    solution =  isBoundedHelper(app, startRow, startCol, [], None, None)
-                    if solution:
-                        return solution
-        return False
-
-#help from TA at OH 
-def isBoundedHelper(app, startRow, startCol, visited, drowN, dcolN):
-    if app.diyBoard[startRow][startCol] == None:
-        return False 
-    elif len(visited) > 2 and (startRow, startCol) == visited[0]:
-        return True
-    else:
-        if len(visited) == 0: 
-            visited.append((startRow, startCol))
-        directions = [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), (-1, 0), (-1, -1)]
-        for drow, dcol in directions:
-            if isLegalMove(app, startRow, startCol, drow, dcol) and ((drowN, dcolN) == (None, None) or (-drowN != drow or -dcolN != dcol)) and (startRow + drow, startCol + dcol) not in visited[1:]:
-                visited.append((startRow + drow, startCol + dcol))
-                solution = isBoundedHelper(app, startRow + drow, startCol + dcol, visited, drow, dcol)
-                if solution:
-                    return visited
-                visited.pop()
-        return False  
-
-def isLegalMove(app, startRow, startCol, drow, dcol):
-    if 0 <= startRow + drow < len(app.diyBoard) and 0 <= startCol + dcol < len(app.diyBoard[0]):
-        return True
-    return False
-
-def findNumSquaresToFill(app, board):
-    numSquares = 0
-    for row in board:
-        print(app.diyColorSelect)
-        if app.diyColorSelect in row:
-            print(row)
-            colStart = row.index(app.diyColorSelect)
-            colEnd = colStart
-            row[colStart] = 0
-            if app.diyColorSelect in row:
-                colEnd = row.index(app.diyColorSelect)
-            print(row, colStart, colEnd)
-            for col in range(colStart + 1, colEnd):
-                numSquares += 1
-    print('numSquares', numSquares)
-    return numSquares
-
-def findBoundedSquaresHelper(app, pressedRow, pressedCol, boundedSquares):
-    board = copy.deepcopy(app.diyBoard)
-    print('boundedSquares', boundedSquares)
-    if app.diyBoard[pressedRow][pressedCol] != None:
-        return False
-    elif len(boundedSquares) == findNumSquaresToFill(app, board):
-        # print(findNumSquaresToFill(app, board))
-        print('true')
-        return True
-    else:
-        if len(boundedSquares) == 0:
-            boundedSquares.append((pressedRow, pressedCol))
-        directions = [(0, -1), (1, 0), (0, 1), (-1, 0)]
-        for drow, dcol in directions:
-            if isLegalMove(app, pressedRow, pressedCol, drow, dcol) and (pressedRow + drow, pressedCol + dcol) not in boundedSquares:
-                boundedSquares.append((pressedRow + drow, pressedCol + dcol))
-                solution = findBoundedSquaresHelper(app, pressedRow + drow, pressedCol + dcol, boundedSquares)
-                if solution:
-                    return boundedSquares
-                boundedSquares.pop()
-        return False
-
-def findBoundedSquares(app, mouseX, mouseY):
-    pressedRow, pressedCol = findSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
-    print('findboundedsquares', findBoundedSquaresHelper(app, pressedRow, pressedCol, []))
-    return findBoundedSquaresHelper(app, pressedRow, pressedCol, [])
-
-def fillShape(app, color, mouseX, mouseY):
-    squares = findBoundedSquares(app, mouseX, mouseY)
-    print('squares', squares)
-    for square in squares:
-        row, col = square
-        app.diyBoard[row][col] = color
-    return app.diyBoard
-
-##DRAWS THE GRID##
-#modified from Tetris creative task
-def drawGrid(app, board, boardLeft, boardTop, center):
-    drawBoard(app, board, boardLeft, boardTop)
-    drawBoardBorder(app, board, center)
-def drawBoard(app, board, boardLeft, boardTop):
-    for row in range(len(board)):
-        for col in range(len(board[row])):
-            drawCell(app, row, col, board[row][col], boardLeft, boardTop)
-def drawBoardBorder(app, board, leftEdge):
-  #draw the board outline (with double-thickness)
-  drawRect(leftEdge, app.height/2, len(board[0]) * 10, len(board) * 10,
-           fill=None, border='black', borderWidth=2*app.cellBorderWidth, align = 'center')
-def drawCell(app, row, col, color, boardLeft, boardTop):
-    cellLeft, cellTop = getCellLeftTop(app, row, col, boardLeft, boardTop)
-    cellWidth, cellHeight = 10, 10
-    drawRect(cellLeft, cellTop, cellWidth, cellHeight,fill=color, 
-             border='black', borderWidth=app.cellBorderWidth)
-def getCellLeftTop(app, row, col, boardLeft, boardTop):
-    cellWidth, cellHeight = 10, 10
-    cellLeft = boardLeft + col * cellWidth
-    cellTop = boardTop + row * cellHeight
-    return (cellLeft, cellTop)
 
 ####DIY SCREEN####
 def diy_onMouseMove(app, mouseX, mouseY):
@@ -616,33 +506,39 @@ def diy_onMouseMove(app, mouseX, mouseY):
     
     getColorWheelColor(app, mouseX, mouseY)
 
-def diy_onMouseDrag(app, mouseX, mouseY):
-    if app.drawingRect:
+def rectTool(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
         app.rectToolEnd = mouseX, mouseY
         xStart, yStart = app.rectToolStart
         for x in range(min(xStart, mouseX), max(xStart, mouseX), 10):
             for y in range(min(yStart, mouseY), max(yStart, mouseY), 10):
-                if isSquare(app, x, y, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
-                    row, col = findSquare(app, x, y, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
+                if isSquare(app, x, y, board, boardLeft, boardTop, pixelsWide, pixelsTall):
+                    row, col = findSquare(app, x, y, board, boardLeft, boardTop)
                     app.boardSelected.add((row, col))
+
+def ovalTool(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
+    app.ovalToolEnd = mouseX, mouseY
+    xStart, yStart = app.ovalToolStart
+    a = abs(mouseX - xStart) / 2
+    b = abs(mouseY - yStart) / 2
+    xCenter = (mouseX + xStart) / 2
+    yCenter = (mouseY + yStart) / 2
+    for x in range(xStart, mouseX, 10):
+        for y in range(yStart, mouseY, 10):
+            #checks if is in oval, logic from chatGPT
+            if (((x - xCenter)**2 / a**2) + ((y - yCenter)**2 / b**2) <= 1):
+                if isSquare(app, x, y, board, boardLeft, boardTop, pixelsWide, pixelsTall):
+                    row, col = findSquare(app, x, y, board, boardLeft, boardTop)
+                    app.boardSelected.add((row, col))
+
+def diy_onMouseDrag(app, mouseX, mouseY):
+    if app.drawingRect:
+        rectTool(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
 
         #need to find way to make sure if user moves mouse the selected squares change too
         #maybe also make it so user can go other way too
 
     if app.drawingOval:
-        app.ovalToolEnd = mouseX, mouseY
-        xStart, yStart = app.ovalToolStart
-        a = abs(mouseX - xStart) / 2
-        b = abs(mouseY - yStart) / 2
-        xCenter = (mouseX + xStart) / 2
-        yCenter = (mouseY + yStart) / 2
-        for x in range(xStart, mouseX, 10):
-            for y in range(yStart, mouseY, 10):
-                #checks if is in oval, logic from chatGPT
-                if (((x - xCenter)**2 / a**2) + ((y - yCenter)**2 / b**2) <= 1):
-                    if isSquare(app, x, y, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
-                        row, col = findSquare(app, x, y, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
-                        app.boardSelected.add((row, col))
+        ovalTool(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
 
         #need to find way to make sure if user moves mouse the selected squares change too
 
@@ -683,7 +579,7 @@ def diy_onMousePress(app, mouseX, mouseY):
         app.moveShape = False
 
     if app.fillSelection:
-        app.diyBoard = fillShape(app, app.diyColorSelect, mouseX, mouseY)
+        app.filling = True
 
     app.selectColorDropper = app.dragSelection = app.fillSelection = app.ovalTool = app.rectTool = False
     app.boardSelected = set()
@@ -706,6 +602,10 @@ def diy_onMousePress(app, mouseX, mouseY):
     if app.drawingOval:
         app.ovalToolStart = mouseX, mouseY
         app.ovalToolEnd = mouseX + 1, mouseY + 1
+
+    if app.filling:
+        if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
+            app.diyBoard = fillShape(app, app.diyColorSelect, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
 
     if app.drawingDrag:
         startX, startY = min(app.dragStart[0], app.dragEnd[0]), min(app.dragStart[1], app.dragEnd[1])
@@ -738,6 +638,9 @@ def diy_onMouseRelease(app, mouseX, mouseY):
     if app.drawingDrag:
         app.dragEnd = mouseX, mouseY
 
+    if app.filling: 
+        app.filling = False
+
 def diy_redrawAll(app):
     drawGrid(app, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, 447)
     drawControls(app, app.diyWidthSlider, app.diyHeightSlider, app.diyPixelsWide, app.diyPixelsTall)
@@ -767,7 +670,18 @@ def diy_redrawAll(app):
 
 ####IMAGE SCREEN####
 def image_onMousePress(app, mouseX, mouseY):
+    if app.rectTool:
+        app.drawingRect = True
+
+    if app.ovalTool:
+        app.drawingOval = True
+
+    if app.dragSelection:
+        app.drawingDrag = True
+        app.moveShape = False
+
     app.selectColorDropper = app.dragSelection = app.fillSelection = app.ovalTool = app.rectTool = False
+    app.boardSelected = set()
 
     #checks if checked aspect ratio button
     if 760 <= mouseX <= 780 and 40 <= mouseY <= 60:
@@ -777,6 +691,7 @@ def image_onMousePress(app, mouseX, mouseY):
     if app.colorSelect != None:
         app.imageColorSelect = app.colorSelect
 
+    #aspect ratio
     oldWidth, oldHeight = app.imageWidthSlider, app.imageHeightSlider
     if app.preserveAspectRatio:
         widthToHeightRatio = app.originalImageWidth/app.originalImageHeight
@@ -819,7 +734,23 @@ def image_onMousePress(app, mouseX, mouseY):
     checkEditingTools(app, mouseX, mouseY)
     checkDoubleClick(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall, app.imageColorSelect)
 
+    if app.drawingRect:
+        app.rectToolStart = mouseX, mouseY
+        app.rectToolEnd = mouseX + 1, mouseY + 1
+
+    if app.drawingOval:
+        app.ovalToolStart = mouseX, mouseY
+        app.ovalToolEnd = mouseX + 1, mouseY + 1
+
+
+
 def image_onMouseDrag(app, mouseX, mouseY):
+    if app.drawingRect:
+        rectTool(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall)
+
+    if app.drawingOval:
+        ovalTool(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall)
+
     oldWidth, oldHeight = app.imageWidthSlider, app.imageHeightSlider
     if app.preserveAspectRatio:
         widthToHeightRatio = app.originalImageWidth/app.originalImageHeight
@@ -842,8 +773,12 @@ def image_onMouseDrag(app, mouseX, mouseY):
     if oldWidth != app.imageWidthSlider or oldHeight != app.imageHeightSlider:
         image_change(app)
 
-    if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
+    if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall) and not app.drawingRect and not app.drawingOval:
         row, col = findSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop)
+        app.imageBoard[row][col] = app.imageColorSelect
+
+    for square in app.boardSelected:
+        row, col = square
         app.imageBoard[row][col] = app.imageColorSelect
 
 def image_onMouseMove(app, mouseX, mouseY):
@@ -866,11 +801,39 @@ def image_onMouseMove(app, mouseX, mouseY):
 
     getColorWheelColor(app, mouseX, mouseY)
 
+def image_onMouseRelease(app, mouseX, mouseY):
+    if app.drawingRect:
+        app.rectToolEnd = mouseX, mouseY
+        app.drawingRect = False
+        app.drawShape = True
+
+    if app.drawingOval:
+        app.ovalToolEnd = mouseX, mouseY
+        app.drawingOval = False
+        app.drawShape = True
+
+    if app.moveShape:
+        app.moveStart = mouseX, mouseY
+        app.moveShape = False
+        app.drawingDrag = False
+
 def image_redrawAll(app):
     drawControls(app, app.imageWidthSlider, app.imageHeightSlider, app.imagePixelsWide, app.imagePixelsTall)
     drawGrid(app, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, 447)
     drawColorPanel(app, app.mostFrequentHex, app.imageMouseX, app.imageMouseY)
     drawUserColorSelection(app, app.imageMouseX, app.imageMouseY)
+    drawEditingTools(app, app.imageMouseX, app.imageMouseY)
+
+    if app.drawingRect:
+        startX, startY = app.rectToolStart
+        endX, endY = app.rectToolEnd
+        drawRect(startX, startY, endX - startX, endY - startY, fill = None, border = 'black')
+
+    if app.drawingOval:
+        x0, y0 = app.ovalToolStart
+        x1, y1 = app.ovalToolEnd
+        centerX, centerY = (x0 + x1)//2, (y0 + y1)//2
+        drawOval(centerX, centerY, x1 - x0, y1 - y0, fill = None, border = 'black')
 
     #preserve aspect ratio checkbox
     drawLabel('Preserve Aspect Ratio:', 690, 50)
