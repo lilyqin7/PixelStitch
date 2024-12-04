@@ -4,6 +4,7 @@
 from cmu_graphics import *
 from buttons import Button
 from imageIcons import Icon
+from slider import Slider, Handle
 
 def onAppStart(app):
     app.width = 800
@@ -11,6 +12,12 @@ def onAppStart(app):
     app.instructionsButton = Button('Click here for instructions', app.width/3, app.height * 3/5, app.width/3, app.height/5, 20)
     app.colorwheel = Icon('colorwheel', 400, 300, 20, 20)
     app.highlighted = False
+
+    app.widthSlider = Slider(770, 75)
+    app.heightSlider = Slider(770, 275)
+    center = (app.widthSlider.leftEdge * 2 + app.widthSlider.width)/2
+    app.widthSliderHandle = Handle(center, 150, app.widthSlider)
+    app.heightSliderHandle = Handle(center, 350, app.heightSlider)
 
 def distance(x1, y1, x2, y2):
     return ((x2 - x1)**2 + (y2 - y1)**2)**0.5
@@ -22,6 +29,11 @@ def start_redrawAll(app):
     app.instructionsButton.drawButton()
     #draw a label with 'instructions' that leads to instructions
 
+    app.widthSlider.draw()
+    app.heightSlider.draw()
+    app.widthSliderHandle.draw()
+    app.heightSliderHandle.draw()
+
     if app.highlighted:
         app.colorwheel.drawSelected()
     else:
@@ -31,6 +43,10 @@ def start_redrawAll(app):
 def start_onMousePress(app, mouseX, mouseY):
     if app.instructionsButton.isSelected(mouseX, mouseY):
         setActiveScreen('instructions')
+
+    print(app.widthSliderHandle.updateSquares(mouseX, mouseY))
+    print(app.heightSliderHandle.updateSquares(mouseX, mouseY))
+    
 
 def start_onMouseMove(app, mouseX, mouseY):
     if app.colorwheel.isSelected(mouseX, mouseY):

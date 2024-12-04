@@ -1,25 +1,45 @@
 from cmu_graphics import *
+import os
 
 class Icon:
     def __init__(self, iconName, leftEdge, topEdge, width, height):
         self.name = iconName
         self.leftEdge = leftEdge
         self.topEdge = topEdge
+        self.rightEdge = leftEdge + width
+        self.bottomEdge = topEdge + height
         self.width = width
         self.height = height
 
     def isSelected(self, mouseX, mouseY):
-        return (self.leftEdge <= mouseX <= self.leftEdge + self.width and 
-            self.topEdge <= mouseY <= self.topEdge + self.height)
+        return (self.leftEdge <= mouseX <= self.rightEdge and 
+                self.topEdge <= mouseY <= self.bottomEdge)
     
     def drawIcon(self):
-        drawRect(self.leftEdge - 3.25, self.topEdge - 3.25, self.width + 7.5, 
-                 self.height + 7.5, fill = 'white', border = 'black')
-        drawImage(f'{self.name}.png', self.leftEdge, self.topEdge, width = 
-                  self.width, height = self.height)
+        iconBorder = 3.25
+        drawRect(self.leftEdge - iconBorder, self.topEdge - iconBorder, 
+                 self.width + 2 * iconBorder, self.height + 2 * iconBorder, 
+                 fill = 'white', border = 'black')
+        drawImage(os.path.join('icons', f'{self.name}.png'), self.leftEdge, 
+                  self.topEdge, width = self.width, height = self.height)
+
+    def drawMovingIcon(self, mouseX, mouseY):
+        drawImage(os.path.join('icons', f'{self.name}.png'), mouseX, mouseY, 
+                  width = 20, height = 20)
 
     def drawSelected(self):
-        drawRect(self.leftEdge - 8.25, self.topEdge - 8.25, self.width + 17.5, 
-                 self.height + 17.5, fill = 'white', border = 'black')
-        drawImage(f'{self.name}.png', self.leftEdge - 5, self.topEdge - 5, 
+        iconBorder = 8.25
+        drawRect(self.leftEdge - iconBorder, self.topEdge - iconBorder, 
+                 self.width + 2 * iconBorder, self.height + 2 * iconBorder, 
+                 fill = 'white', border = 'black')
+        drawImage(os.path.join('icons', f'{self.name}.png'), self.leftEdge - 5, self.topEdge - 5, 
                   width = self.width + 10, height = self.height + 10)
+        
+    # def drawLabels(self):
+    #     #https://www.pngwing.com/en/free-png-zsojt/download
+    #     labelLeftEdge = self.leftEdge - 10
+    #     labelWidth = self.width + 20
+    #     drawImage('iconLabel.png', labelLeftEdge, self.bottomEdge, 
+    #               width = labelWidth, height = self.height)
+    #     drawLabel(self.name, (self.leftEdge + self.rightEdge)/2, 
+    #               self.bottomEdge - self.height/2, size = 6)

@@ -8,8 +8,6 @@ class Button:
         self.topEdge = topEdge
         self.width = width
         self.height = height
-        self.color = gradient(rgb(255, 191, 230), rgb(236, 125, 191))
-        self.border = 'black'
         self.fontSize = fontSize
 
     def isSelected(self, mouseX, mouseY):
