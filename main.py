@@ -336,36 +336,48 @@ def mousePress(app, mouseX, mouseY, widthSlider, heightSlider):
         heightSlider = mouseX
     return widthSlider, heightSlider
 
+
 #checks if mouse is hovering over valid color grid option
 def mouseMove(app, mouseX, mouseY, colorList):
     row, col = 0, 0
+    width, height = 20, 20
+    startX, startY = 100, 260
+    borderWidth = 2
     #calculate row based on mouseX position
-    if 650 <= mouseX <= 668:
+    if (startX <= mouseX <= startX + width):
+        col = 0
+    elif (startX + width + borderWidth <= mouseX <= startX + width*2 + 
+          borderWidth):
         col = 1
-    elif 668 <= mouseX <= 686:
+    elif (startX + width*2 + borderWidth*2 <= mouseX <= startX + width*3 + 
+          borderWidth*2):
         col = 2
-    elif 686 <= mouseX <= 704:
+    elif (startX + width*3 + borderWidth*3 <= mouseX <= startX + width*4 + 
+          borderWidth*3):
         col = 3
+    elif (startX + width*4 + borderWidth*4 <= mouseX <= startX + width*5 + 
+          borderWidth*4):
+        col = 4
     
     #calculate col based on mouseY position
-    if 100 <= mouseY <= 118:
+    if (startY <= mouseY <= startY + height):
+        row = 0
+    elif (startY + height + borderWidth <= mouseY <= startY + height*2 + 
+          borderWidth):
         row = 1
-    elif 118 <= mouseY <= 136:
-        row = 2
-    elif 136 <= mouseY <= 154:
-        row = 3
-    elif 154 <= mouseY <= 172:
-        row = 4
 
     #calculates the index in colorList
     if row > 0 and col > 0:
-        index = (row - 1) * 3 + (col - 1)
+        numCols = 5
+        index = row*numCols + col
         if index < len(colorList):
             app.colorSelect = colorList[index]
         else:
             app.colorSelect = None
     else:
         app.colorSelect = None
+
+    print(app.colorSelect)
 
 def distance(x0, y0, x1, y1):
     return ((x0 - x1)**2 + (y0 - y1)**2)**0.5
@@ -579,7 +591,7 @@ def drawIconTools(app, mouseX, mouseY):
         #if mouse is hoovering over the gradient
         if (distance(mouseX, mouseY, (rectLeft*2 + rectWidth)/2, 
                     (rectTop*2 + rectHeight)/2) <= circleRadius 
-                    and app.colorSelect) != None:
+                    and app.colorSelect != None):
             drawRect(rectLeft, rectTop, rectWidth, rectHeight, fill = 
                      gradient('white', app.colorSelect, 'black', start = 'left'), 
                      border = 'black')
@@ -907,7 +919,6 @@ def diy_redrawAll(app):
     drawIcons(app)
     drawIconTools(app, app.mouseX, app.mouseY)
     drawSliders(app)
-    print(app.diyWidthSliderHandle.cy)
     drawIconHighlights(app)
 
     if app.drawingRect:
@@ -951,8 +962,14 @@ def image_onMousePress(app, mouseX, mouseY):
     if app.fillSelection:
         app.filling = True
 
-    app.selectColorDropper = app.dragSelection = app.fillSelection = app.ovalTool = app.rectTool = False
+    # app.selectColorDropper = app.dragSelection = app.fillSelection = app.ovalTool = app.rectTool = False
     app.boardSelected = set()
+
+    checkIconTools(app)
+
+    #change width and height sliders
+    app.imagePixelsWide = changeSliders(app, mouseX, mouseY, app.imageWidthSliderHandle)
+    app.imagePixelsTall = changeSliders(app, mouseX, mouseY, app.imageHeightSliderHandle)
 
     #checks if checked aspect ratio button
     if 760 <= mouseX <= 780 and 40 <= mouseY <= 60:
@@ -1074,6 +1091,8 @@ def image_onMouseMove(app, mouseX, mouseY):
     app.currentScreen = 'image'
     updateMouse(app, mouseX, mouseY)
 
+    checkIconHighlights(app)
+
     #for double click
     if (isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
                  app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall)):
@@ -1119,8 +1138,10 @@ def image_redrawAll(app):
     drawGrid(app, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, 400)
     # drawColorPanel(app, app.mostFrequentHex, app.mouseX, app.mouseY)
     # drawUserColorSelection(app, app.mouseX, app.mouseY)
+    drawIcons(app)
     drawIconTools(app, app.mouseX, app.mouseY)
     drawSliders(app)
+    drawIconHighlights(app)
 
     if app.drawingRect:
         startX, startY = app.rectToolStart
