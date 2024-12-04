@@ -3,11 +3,14 @@
 #also choose color scheme
 from cmu_graphics import *
 from buttons import Button
+from imageIcons import Icon
 
 def onAppStart(app):
     app.width = 800
     app.height = 500
     app.instructionsButton = Button('Click here for instructions', app.width/3, app.height * 3/5, app.width/3, app.height/5, 20)
+    app.colorwheel = Icon('colorwheel', 400, 300, 20, 20)
+    app.highlighted = False
 
 def distance(x1, y1, x2, y2):
     return ((x2 - x1)**2 + (y2 - y1)**2)**0.5
@@ -19,11 +22,22 @@ def start_redrawAll(app):
     app.instructionsButton.drawButton()
     #draw a label with 'instructions' that leads to instructions
 
+    if app.highlighted:
+        app.colorwheel.drawSelected()
+    else:
+        app.colorwheel.drawIcon()  
 
 #if the user clicks within the 'Click here for instructions' box, take to instructions page
 def start_onMousePress(app, mouseX, mouseY):
-    if app.instructionsButton.isClicked(mouseX, mouseY):
+    if app.instructionsButton.isSelected(mouseX, mouseY):
         setActiveScreen('instructions')
+
+def start_onMouseMove(app, mouseX, mouseY):
+    if app.colorwheel.isSelected(mouseX, mouseY):
+        app.highlighted = True
+    else:
+        app.highlighted = False
+    
 
 ####INSTRUCTIONS PAGE####
 def instructions_redrawAll(app):

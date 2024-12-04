@@ -6,9 +6,15 @@
     # make them better
 # scroll bar
 # maybe random image chooser based on categories user selects
+# ui
+# no magic numbers
 
-#images: https://docs.google.com/document/d/1fT-UJPKzTpPlPjaDBd1HXdmDL1TBXOJUnp3GDQunrz8/edit?usp=sharing
+#all backgrounds and images used in backgrounds: 
+#https://www.canva.com/design/DAGYShQAujk/OxH7z5xjpadCdniyeZAEgg/edit?utm_content=DAGYShQAujk&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
 
+#link to all image files: https://drive.google.com/file/d/17dOcwpKakfRUy7UWX38UtOujxa9dMTBI/view?usp=sharing 
+
+#image citations: https://docs.google.com/document/d/1fT-UJPKzTpPlPjaDBd1HXdmDL1TBXOJUnp3GDQunrz8/edit?usp=sharing
 
 from cmu_graphics import *
 # from urllib.request import urlopen
@@ -21,21 +27,9 @@ from hexCodeFunctions import calculateMostFrequentHex, calculateHexCodes
 from squareFunctions import isSquare, findSquare
 from floodFill import fillShape
 from buttons import Button
+from scrollbar import Scrollbar
 
-def onAppStart(app):
-    #screen dimensions 
-    app.width = 800
-    app.height = 500
-
-    app.highlighted = False
-    app.diyButton = Button('DIY', app.width/12, app.height * 7/10, app.width/3, app.height/8, 25)
-    app.imageButton = Button('Image', app.width*7/12, app.height*7/10, app.width/3, app.height/8, 25)
-    
-    app.currentScreen = 'start'
-    app.prevScreen = 'start'
-
-    ####variables for diy####
-
+def diyScreenVariables(app):
     #sets necessary variables for controlling size/pixels of diy
     app.diyPixelsWide, app.diyPixelsTall = 20, 30
     app.diyWidthSlider = app.diyHeightSlider = 100
@@ -45,17 +39,13 @@ def onAppStart(app):
     app.diyBoardLeft = app.width/2 + 47 - app.diyPixelsWide * 5 
     app.diyBoardTop = app.height/2 - app.diyPixelsTall * 5
 
-    #variables for color select
-    app.colorSelect = None
     app.diyColorSelect = None
-    app.diyMouseX = app.diyMouseY = 0
 
     #colors on screen
     app.diyColors = ['pink', 'red', 'orange', 'yellow', 'green', 'blue', 'purple', 'white', 'black', 'brown']
 
-
-    #####variables for image####
-
+def imageScreenVariables(app):
+    #https://www.freepik.com/free-vector/gradient-pink-green-background_40130129.htm
     app.pilImage = Image.open(os.path.join('images', '2.png')).convert('RGB')
 
     app.originalImageWidth, app.originalImageHeight = app.pilImage.size
@@ -85,21 +75,28 @@ def onAppStart(app):
 
     #variables for color select
     app.imageColorSelect = None
-    app.imageMouseX = app.imageMouseY = 0
 
     app.preserveAspectRatio = False
 
+def colorVariables(app):
+    app.colorSelect = None
     #color dropper and color wheel tool
     app.selectColorDropper = False
     app.selectColorWheel = False
     app.colorDropperColor = None
-    #image from clipartmax
+    #https://www.clipartmax.com/download/m2i8G6N4A0N4A0H7_color-color-wheel-wheel-icon-color-wheel-transparent-background/ 
     wheel = Image.open('colorwheel.png')
     app.colorWheel = wheel.resize((100, 100))
     app.selectedFromColorWheel = False
     app.selectedColorFromWheel = (0, 0, 0)
 
-    #editing tools
+def doubleClickVariables(app):
+    app.doubleClickThreshold = 300
+    app.clickPosition = (0, 0)
+    app.lastClickTime = 0
+    app.doubleClickColor = None
+
+def editingVariables(app):
     app.dragSelection = False
     app.dragStart = 0, 0
     app.dragEnd = 0, 0
@@ -130,11 +127,40 @@ def onAppStart(app):
     
     app.boardSelected = set()
 
-    #check double click
-    app.doubleClickThreshold = 300
-    app.clickPosition = (0, 0)
-    app.lastClickTime = 0
-    app.doubleClickColor = None
+def screenVariables(app):
+    app.width = 800
+    app.height = 500
+    app.mouseX, app.mouseY = 0, 0        
+    app.prevScreen = 'start'
+
+def buttons(app):
+    #used in welcome screen
+    app.instructionsButton = Button('Instructions', app.width/3, app.height*7/16, app.width/3, app.height/8, 25)
+    app.startButton = Button('Start', app.width/3, app.height*10/16, app.width/3, app.height/8, 25 )
+
+    #used in start screen
+    app.diyButton = Button('DIY', app.width/12, app.height * 7/10, app.width/3, app.height/8, 25)
+    app.imageButton = Button('Image', app.width*7/12, app.height*7/10, app.width/3, app.height/8, 25)
+
+    #used in image options screen
+    app.createButton = Button('Create', 650, 450, 100, 30, 15)
+
+    #used in image and diy screens
+    app.generateButton = Button('Generate', 650, 450, 100, 30, 15)
+
+    #used in almost all screens
+    app.backButton = Button('Back', 50, 450, 100, 30, 15)
+
+def onAppStart(app):
+    screenVariables(app)
+    diyScreenVariables(app)
+    imageScreenVariables(app)
+    colorVariables(app)
+    editingVariables(app)
+    doubleClickVariables(app)
+    buttons(app)
+
+    # app.scrollbar = Scrollbar(8)
 
 ####USED ON IMAGE SCREEN
 def pixelate(image, pixelsWide, pixelsTall, width, height):
@@ -192,14 +218,14 @@ def image_change(app):
                                                     app.imagePixelsWide, app.imagePixelsTall)
 
     changeImageDimensions(app)
+    offset = 47
     app.imageBoard = resizingBoard(app, app.imageBoard, app.imagePixelsWide, app.imagePixelsTall)
-    app.imageBoardLeft = app.width/2 + 47 - app.imagePixelsWide * 5
-    app.imageBoardTop = app.height/2 - app.imagePixelsTall * 5
+    app.imageBoardLeft = app.width/2 + offset - app.imagePixelsWide*5
+    app.imageBoardTop = app.height/2 - app.imagePixelsTall*5
 
     pilImage = pixelate(app.pilImage, app.imagePixelsWide, 
                         app.imagePixelsTall, app.imageWidth, app.imageHeight)
     
-    #currently cannot "save" drawings made prior to resizing
     for row in range(app.imagePixelsTall):
         for col in range(app.imagePixelsWide):
             color = pilImage.getpixel((col * 10 + 5, row * 10 + 5))
@@ -321,23 +347,18 @@ def drawControls(app, widthSlider, heightSlider, pixelsWide, pixelsTall):
     drawOval(heightSlider, 225, 5, 15, fill = 'blue')
 
     #back button
-    drawRect(50, 450, 100, 30, fill = 'pink')
-    drawLabel('Back', 100, 465, size = 15)
-
-    #generate pattern button
-    drawRect(650, 450, 100, 30, fill = 'pink')
-    drawLabel('Generate', 700, 465, size = 15)
+    app.backButton.drawButton()
+    app.generateButton.drawButton()
 
     drawLabel('Tools', 100, 320)
 
-    #images from iconmonstr
-    #select and move tool
+    #lasso tool, https://iconmonstr.com/cursor-11-png/
     drawImage('move icon.png', 28.25, 348.25, width = 30, height = 30)
-    #fill tool
+    #fill tool, https://iconmonstr.com/paint-bucket-10-png/
     drawImage('fill icon.png', 65.75, 348.25, width = 30, height = 30)
-    #square tool
+    #square tool, https://iconmonstr.com/eraser-2-png/
     drawImage('square icon.png', 103.25, 348.25, width = 30, height = 30)
-    #circle tool
+    #circle tool, https://iconmonstr.com/circle-6-svg/
     drawImage('circle icon.png', 141.75, 349.25, width = 28, height = 28)
 
     #draws outlines
@@ -348,8 +369,7 @@ def drawControls(app, widthSlider, heightSlider, pixelsWide, pixelsTall):
 def drawColorPanel(app, colorList, mouseX, mouseY):
     drawLabel('Color Bank', 678, 80, align = 'center')
 
-    #draw eraser
-    #image from iconmonstr
+    #draw eraser, https://iconmonstr.com/eraser-2-png/
     drawImage('eraser icon.png', 745.5, 157.2, width = 15, height = 15)
     drawRect(743, 155, 20, 20, fill = None, border = 'black')
 
@@ -377,13 +397,13 @@ def drawColorPanel(app, colorList, mouseX, mouseY):
     drawRect(668, 154, 20, 20, fill = None, border = 'black')
 
     #color wheel
-    #image from PNGWing
+    #https://www.pngwing.com/en/free-png-zxmtj 
     drawImage('colorwheel icon.png', 688.5, 156.5, width = 15, height = 15)
     drawRect(686, 154, 20, 20, fill = None, border = 'black')
 
     #draws color wheel
     if app.selectColorWheel == True:
-        #image from clipartmax
+        #https://www.clipartmax.com/download/m2i8G6N4A0N4A0H7_color-color-wheel-wheel-icon-color-wheel-transparent-background/ 
         drawImage(CMUImage(app.colorWheel), 645, 230)
         drawRect(620, 205, 150, 200, fill = None, border = 'black')
         if distance(mouseX, mouseY, 695, 280) <= 50 and app.colorSelect != None:
@@ -465,12 +485,16 @@ def checkEditingTools(app, mouseX, mouseY):
 
 def drawEditingTools(app, mouseX, mouseY):
     if app.dragSelection == True:
+        #https://iconmonstr.com/cursor-11-png/
         drawImage('move icon.png', mouseX, mouseY, width = 20, height = 20)
     if app.fillSelection == True:
+        #https://iconmonstr.com/paint-bucket-10-png/
         drawImage('fill icon.png', mouseX, mouseY, width = 20, height = 20)
     if app.ovalTool == True:
+        #https://iconmonstr.com/circle-6-svg/
         drawImage('circle icon.png', mouseX, mouseY, width = 20, height = 20)
     if app.rectTool == True:
+        #https://iconmonstr.com/eraser-2-png/
         drawImage('square icon.png', mouseX, mouseY, width = 20, height = 20)
 
 #double click check from chatGPT, changing colors not
@@ -516,6 +540,7 @@ def ovalTool(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixels
 
 ####DIY SCREEN####
 def diy_onMouseMove(app, mouseX, mouseY):
+    app.mouseX, app.mouseY = mouseX, mouseY
     #for double click
     if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, 
                 app.diyPixelsWide, app.diyPixelsTall):
@@ -523,7 +548,6 @@ def diy_onMouseMove(app, mouseX, mouseY):
                               app.diyBoardTop)
         app.doubleClickColor = app.diyBoard[row][col]
 
-    app.diyMouseX, app.diyMouseY = mouseX, mouseY
     mouseMove(app, mouseX, mouseY, app.diyColors)
 
     if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, 
@@ -660,9 +684,9 @@ def diy_onMouseRelease(app, mouseX, mouseY):
 def diy_redrawAll(app):
     drawGrid(app, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, 447)
     drawControls(app, app.diyWidthSlider, app.diyHeightSlider, app.diyPixelsWide, app.diyPixelsTall)
-    drawColorPanel(app, app.diyColors, app.diyMouseX, app.diyMouseY)
-    drawUserColorSelection(app, app.diyMouseX, app.diyMouseY)
-    drawEditingTools(app, app.diyMouseX, app.diyMouseY)
+    drawColorPanel(app, app.diyColors, app.mouseX, app.mouseY)
+    drawUserColorSelection(app, app.mouseX, app.mouseY)
+    drawEditingTools(app, app.mouseX, app.mouseY)
 
     if app.drawingRect:
         startX, startY = app.rectToolStart
@@ -683,6 +707,12 @@ def diy_redrawAll(app):
         #make them move!!
         if endX - startX > 0 and endY - startY > 0:
             drawRect(startX, startY, endX - startX, endY - startY, fill = None, border = 'black', dashes = True)
+
+    #checks if mouse is hoovering over
+    if app.backButton.isSelected(app.mouseX, app.mouseY):
+        app.backButton.drawHighlight()
+    elif app.generateButton.isSelected(app.mouseX, app.mouseY):
+        app.generateButton.drawHighlight()
 
 ####IMAGE SCREEN####
 def image_onMousePress(app, mouseX, mouseY):
@@ -812,13 +842,14 @@ def image_onMouseDrag(app, mouseX, mouseY):
         app.imageBoard[row][col] = app.imageColorSelect
 
 def image_onMouseMove(app, mouseX, mouseY):
+    app.mouseX, app.mouseY = mouseX, mouseY
+
     #for double click
     if (isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
                  app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall)):
         row, col = findSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop)
         app.doubleClickColor = app.imageBoard[row][col]
 
-    app.imageMouseX, app.imageMouseY = mouseX, mouseY
     mouseMove(app, mouseX, mouseY, app.mostFrequentHex)
 
     #checks if mouse is hovering over an image square
@@ -856,9 +887,9 @@ def image_redrawAll(app):
     drawControls(app, app.imageWidthSlider, app.imageHeightSlider, 
                  app.imagePixelsWide, app.imagePixelsTall)
     drawGrid(app, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, 447)
-    drawColorPanel(app, app.mostFrequentHex, app.imageMouseX, app.imageMouseY)
-    drawUserColorSelection(app, app.imageMouseX, app.imageMouseY)
-    drawEditingTools(app, app.imageMouseX, app.imageMouseY)
+    drawColorPanel(app, app.mostFrequentHex, app.mouseX, app.mouseY)
+    drawUserColorSelection(app, app.mouseX, app.mouseY)
+    drawEditingTools(app, app.mouseX, app.mouseY)
 
     if app.drawingRect:
         startX, startY = app.rectToolStart
@@ -879,35 +910,49 @@ def image_redrawAll(app):
         #draw white checkmark
     drawRect(760, 40, 20, 20, fill = color, border = 'black')
 
+    #checks if mouse is hoovering over
+    if app.backButton.isSelected(app.mouseX, app.mouseY):
+        app.backButton.drawHighlight()
+    elif app.generateButton.isSelected(app.mouseX, app.mouseY):
+        app.generateButton.drawHighlight()
+
 ####CHOOSE IMAGE SCREEN####
+def imageOptions_onMouseMove(app, mouseX, mouseY):
+    app.mouseX, app.mouseY = mouseX, mouseY
+
 def imageOptions_onMousePress(app, mouseX, mouseY):
-    if 650 <= mouseX <= 750 and 450 <= mouseY <= 480:
+    if app.createButton.isSelected(mouseX, mouseY):
         setActiveScreen('image')
-    elif 50 <= mouseX <= 150 and 450 <= mouseY <= 480:
+    elif app.backButton.isSelected(mouseX, mouseY):
         setActiveScreen('start')
 
 def imageOptions_redrawAll(app):
     drawLabel('Choose an Image:', app.width/2, app.height/6, size = 30)
-
     #draw images
 
-    #create button
-    drawRect(650, 450, 100, 30, fill = 'pink')
-    drawLabel('Create', 700, 465, size = 15)
-    #back button
-    drawRect(50, 450, 100, 30, fill = 'pink')
-    drawLabel('Back', 100, 465, size = 15)
+    app.createButton.drawButton()
+    app.backButton.drawButton()
+
+    #checks if mouse is hoovering
+    if app.createButton.isSelected(app.mouseX, app.mouseY):
+        app.createButton.drawHighlight()
+    elif app.backButton.isSelected(app.mouseX, app.mouseY):
+        app.backButton.drawHighlight()    
 
 ####RESULT SCREEN####
+def result_onMouseMove(app, mouseX, mouseY):
+    app.mouseX = mouseX
+    app.mouseY = mouseY
+
 def result_onMousePress(app, mouseX, mouseY):
-    #if back button pressed
-    if 50 <= mouseX <= 150 and 450 <= mouseY <= 480:
+    if app.backButton.isSelected(mouseX, mouseY):
         setActiveScreen(app.prevScreen)
 
 def result_redrawAll(app):
-    #back button
-    drawRect(50, 450, 100, 30, fill = 'pink')
-    drawLabel('Back', 100, 465, size = 15)
+    app.backButton.drawButton()
+
+    if app.backButton.isSelected(app.mouseX, app.mouseY):
+        app.backButton.drawHighlight()
 
     drawLabel('Pattern', app.width/2, app.height/8, size = 20)
 
@@ -917,34 +962,76 @@ def result_redrawAll(app):
     elif app.prevScreen == 'diy':
         drawGrid(app, app.diyBoard, app.diyBoardLeft - 47, app.diyBoardTop, 400)
 
-    #scrollbar
-    drawRect(788, 0, 12, 500, fill = 'lightGray')
-    drawRect(788, 0, 12, 50, fill = 'gray')
-
 ####START SCREEN####
 def start_onMouseMove(app, mouseX, mouseY):
-    app.highlighted = False
-    if app.diyButton.isSelected(mouseX, mouseY):
-        app.highlighted = True
+    app.mouseX = mouseX
+    app.mouseY = mouseY
 
 def start_onMousePress(app, mouseX, mouseY):
     if app.diyButton.isSelected(mouseX, mouseY):
         setActiveScreen('diy')
-        app.prevScreen = 'diy'
     elif app.imageButton.isSelected(mouseX, mouseY):
         setActiveScreen('imageOptions')
-        app.prevScreen = 'image'
+    elif app.backButton.isSelected(mouseX, mouseY):
+        setActiveScreen('welcome')
 
 def start_redrawAll(app):
-    drawLabel('DIY or image?', app.width/2, app.height/2, size = 40)
-
     app.diyButton.drawButton()
     app.imageButton.drawButton()
+    app.backButton.drawButton()
 
-    if app.highlighted:
+    #checks if mouse hoovering over button
+    if app.diyButton.isSelected(app.mouseX, app.mouseY):
         app.diyButton.drawHighlight()
+    elif app.imageButton.isSelected(app.mouseX, app.mouseY):
+        app.imageButton.drawHighlight()
+    elif app.backButton.isSelected(app.mouseX, app.mouseY):
+        app.backButton.drawHighlight()
+
+####INSTRUCTIONS SCREEN####
+def instructions_onMouseMove(app, mouseX, mouseY):
+    app.mouseX = mouseX
+    app.mouseY = mouseY
+
+def instructions_onMousePress(app, mouseX, mouseY):
+    if app.backButton.isSelected(mouseX, mouseY):
+        setActiveScreen('welcome')
+
+def instructions_redrawAll(app):
+    app.backButton.drawButton()
+
+    if app.backButton.isSelected(app.mouseX, app.mouseY):
+        app.backButton.drawHighlight()
+
+####WELCOME SCREEN####
+def welcome_onMouseMove(app, mouseX, mouseY):
+    app.mouseX = mouseX
+    app.mouseY = mouseY
+
+def welcome_onMousePress(app, mouseX, mouseY):
+    if app.instructionsButton.isSelected(mouseX, mouseY):
+        setActiveScreen('instructions')
+        app.prevScreen = 'instructions'
+    elif app.startButton.isSelected(mouseX, mouseY):
+        setActiveScreen('start')
+        app.prevScreen = 'start'
+
+    # app.scrollbar.calculateHeight(1000)
+
+def welcome_redrawAll(app):
+    drawImage('welcomeBackground.png', 0, 0)
+    app.instructionsButton.drawButton()
+    app.startButton.drawButton()
+
+    if app.instructionsButton.isSelected(app.mouseX, app.mouseY):
+        app.instructionsButton.drawHighlight()
+    elif app.startButton.isSelected(app.mouseX, app.mouseY):
+        app.startButton.drawHighlight()
+    
+    # app.scrollbar.drawScrollBar()
+    # app.scrollbar.drawHandle()
 
 def main():
-    runAppWithScreens(initialScreen = 'start', width = app.width, height = app.height)
+    runAppWithScreens(initialScreen = 'welcome', width = app.width, height = app.height)
 
 main()

@@ -23,4 +23,4 @@ class Button:
         #image from https://stock.adobe.com/search?k=%22pink+button%22&asset_id=537039436
         drawImage('pinkButton.png', self.leftEdge, self.topEdge, width = self.width, height = self.height)
         drawLabel(self.text, (self.leftEdge + self.leftEdge + self.width)/2, 
-                  (self.topEdge + self.topEdge + self.height)/2, size = self.fontSize)    
+                  (self.topEdge + self.topEdge + self.height)/2, size = self.fontSize, font = 'lora')    

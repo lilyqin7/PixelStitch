@@ -1,0 +1,4 @@
+user a thon feedback!!
+- instructions screen
+- change size of brushes
+- straight line tool
