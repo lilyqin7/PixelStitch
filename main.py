@@ -19,6 +19,7 @@
 from cmu_graphics import *
 from PIL import Image
 # import copy
+import random
 import os
 import time
 from drawGrid import drawGrid
@@ -30,6 +31,7 @@ from scrollbar import Scrollbar
 from slider import Slider, Handle
 from imageIcons import Icon
 from colorWheel import ColorSelection
+from imageOptions import ImageOptions
 
 def diyScreenVariables(app):
     #sets necessary variables for controlling size/pixels of diy
@@ -49,39 +51,32 @@ def diyScreenVariables(app):
                      'purple', 'white', 'black', 'brown']
 
 def imageScreenVariables(app):
-    #https://www.freepik.com/free-vector/gradient-pink-green-background_40130129.htm
-    app.pilImage = Image.open(os.path.join('images', '2.png')).convert('RGB')
-
-    app.originalImageWidth, app.originalImageHeight = app.pilImage.size
-
-    app.imageWidth, app.imageHeight = app.pilImage.size
+    app.pilImage = None
+    app.originalImageWidth, app.originalImageHeight = None, None
+    app.imageWidth, app.imageHeight = None, None
 
     #sets necessary variables for controlling size/pixels of image
     app.imagePixelsWide, app.imagePixelsTall = 27, 27
-    # app.imageWidthSlider = app.imageHeightSlider = 100
-
-    #changes size of image so the pixels are square
-    changeImageDimensions(app)
 
     #create dictionary to store all the hex codes and the frequency they appear
-    app.hexCodeToFrequency = calculateHexCodes(app, app.pilImage)
-    app.mostFrequentHex = calculateMostFrequentHex(app)
+    app.hexCodeToFrequency = None
+    app.mostFrequentHex = None
 
     #variables for drawing board
     app.imageBoard = [([None] * app.imagePixelsWide) for row 
                       in range(app.imagePixelsTall)]
     app.imageBoardLeft = app.width/2 - app.imagePixelsWide * 5
     app.imageBoardTop = app.height/2 - app.imagePixelsTall * 5
-    
-    pilImage = pixelate(app.pilImage, app.imagePixelsWide, 
-                        app.imagePixelsTall, app.imageWidth, app.imageHeight)
-    
-    updateImageBoard(app, pilImage)
 
     #variables for color select
     app.imageColorSelect = None
 
     app.preserveAspectRatio = False
+
+def imageOptions(app):
+    app.selectedImages = set()
+    app.imageSelected = False
+    app.selectedImage = None
 
 def doubleClickVariables(app):
     app.doubleClickThreshold = 300
@@ -123,6 +118,8 @@ def editingVariables(app):
     app.moveEnd = 0, 0
     app.selectionWidth = 0
     app.selectionHeight = 0
+    app.mouseXtoLeftDif = 0
+    app.mouseYtoTopDif = 0
 
     app.fillSelection = False
     app.fillHighlight = False
@@ -238,6 +235,7 @@ def onAppStart(app):
     buttons(app)
     sliders(app)
     toolIcons(app)
+    imageOptions(app)
 
     # app.scrollbar = Scrollbar(8)
 
@@ -325,9 +323,6 @@ def resizingBoard(app, board, pixelsWide, pixelsTall):
         for col in range(min(len(oldBoard[0]), len(newBoard[0]))):
             newBoard[row][col] = oldBoard[row][col]
     return newBoard
-
-def distance(x0, y0, x1, y1):
-    return ((x0 - x1)**2 + (y0 - y1)**2)**0.5
 
 def updateMouse(app, mouseX, mouseY):
     app.mouseX, app.mouseY = mouseX, mouseY
@@ -448,6 +443,19 @@ def drawIcons(app):
     app.squareIcon.drawIcon()
     app.circleIcon.drawIcon()
 
+def checkIconEditing(app):
+    if app.eraser:
+        app.imageColorSelect = None
+    elif app.fillSelection:
+        app.filling = True
+    elif app.dragSelection:
+        app.drawingDrag = True
+        app.moveShape = False
+    elif app.rectTool:
+        app.drawingRect = True
+    elif app.ovalTool:
+        app.drawingOval = True
+
 def checkIconTools(app):
     if app.colorIcon.isSelected(app.mouseX, app.mouseY):
         app.selectColorWheel = not app.selectColorWheel
@@ -455,14 +463,25 @@ def checkIconTools(app):
         app.selectColorDropper = not app.selectColorDropper
     elif app.eraserIcon.isSelected(app.mouseX, app.mouseY):
         app.eraser = not app.eraser
+        # if app.eraser:
+        #     app.imageColorSelect = None
     elif app.fillIcon.isSelected(app.mouseX, app.mouseY):
         app.fillSelection = not app.fillSelection
+        # if app.fillSelection:
+        #     app.filling = True
     elif app.lassoIcon.isSelected(app.mouseX, app.mouseY):
         app.dragSelection = not app.dragSelection
+        # if app.dragSelection:
+        #     app.drawingDrag = True
+        #     app.moveShape = False
     elif app.squareIcon.isSelected(app.mouseX, app.mouseY):
         app.rectTool = not app.rectTool
+        # if app.rectTool:
+        #     app.drawingRect = True
     elif app.circleIcon.isSelected(app.mouseX, app.mouseY):
         app.ovalTool = not app.ovalTool
+        # if app.ovalTool:
+        #     app.drawingOval = True
     else:
         app.selectColorDropper = app.dragSelection = app.fillSelection = app.ovalTool = app.rectTool = app.eraser = False
 
@@ -585,10 +604,12 @@ def diy_onMouseMove(app, mouseX, mouseY):
         else:
             app.colorDropperColor = None
     
-
 def diy_onMouseDrag(app, mouseX, mouseY):
     # if app.diyColorSelectionPanel.isSelected(mouseX, mouseY):
     #     app.diyColorSelectionPanel.move(mouseX, mouseY)
+
+    app.mouseX = mouseX
+    app.mouseY = mouseY
 
     if app.drawingRect:
         rectTool(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, 
@@ -608,13 +629,14 @@ def diy_onMouseDrag(app, mouseX, mouseY):
         xStart, yStart = app.moveStart
         xOffset = mouseX - xStart
         yOffset = mouseY - yStart
+        print('moveStart', app.moveStart)
 
         # Update the rectangle's position
         startX, startY = app.dragStart
         app.dragStart = (startX + xOffset, startY + yOffset)
         app.dragEnd = (startX + xOffset + app.selectionWidth, startY + yOffset 
                        + app.selectionHeight)
-        app.moveStart = mouseX, mouseY
+        app.moveEnd = mouseX, mouseY
 
 
     if app.drawingDrag:
@@ -636,19 +658,6 @@ def diy_onMousePress(app, mouseX, mouseY):
     #     app.diyColorSelectionPanel.initializeMove(mouseX, mouseY)
     #     print(app.diyColorSelectionPanel.distanceFromMouseXtoLeft)
 
-    if app.rectTool:
-        app.drawingRect = True
-
-    if app.ovalTool:
-        app.drawingOval = True
-
-    if app.dragSelection:
-        app.drawingDrag = True
-        app.moveShape = False
-
-    if app.fillSelection:
-        app.filling = True
-
     if app.selectColorWheel:
         if app.diyColorSelectionPanel.wheelSelected(mouseX, mouseY):
             app.diyColorSelectionPanel.selectedColorFromWheel = app.diyColorSelectionPanel.getPixel(mouseX, mouseY)
@@ -659,9 +668,8 @@ def diy_onMousePress(app, mouseX, mouseY):
     app.boardSelected = set()
 
     checkIconTools(app)
-
-    if app.eraser:
-        app.diyColorSelect = None
+    checkIconEditing(app)
+    print(app.rectTool, app.drawingRect)
 
     if app.colorSelect != None:
         app.diyColorSelect = app.colorSelect
@@ -697,11 +705,16 @@ def diy_onMousePress(app, mouseX, mouseY):
     if app.drawingDrag:
         startX, startY = min(app.dragStart[0], app.dragEnd[0]), min(app.dragStart[1], app.dragEnd[1])
         endX, endY = max(app.dragStart[0], app.dragEnd[0]), max(app.dragStart[1], app.dragEnd[1])
+        #actually moving the box
         if startX < mouseX < endX and startY < mouseY < endY:
             app.moveShape = True
             app.moveStart = mouseX, mouseY
             app.selectionWidth = endX - startX
             app.selectionHeight = endY - startY
+            app.mouseXtoLeftDif = mouseX - startX
+            app.mouseYtoTopDif = mouseY - startY
+            app.drawingDrag = False
+        #still drawing the selecion
         else: 
             app.dragStart = mouseX, mouseY
             app.dragEnd = mouseX + 1, mouseY + 1
@@ -750,7 +763,8 @@ def diy_redrawAll(app):
     if app.drawingRect:
         startX, startY = app.rectToolStart
         endX, endY = app.rectToolEnd
-        drawRect(startX, startY, endX - startX, endY - startY, fill = None, border = 'black')
+        drawRect(startX, startY, endX - startX, endY - startY, fill = None, 
+                 border = 'black')
 
     if app.drawingOval:
         x0, y0 = app.ovalToolStart
@@ -758,15 +772,19 @@ def diy_redrawAll(app):
         centerX, centerY = (x0 + x1)//2, (y0 + y1)//2
         drawOval(centerX, centerY, x1 - x0, y1 - y0, fill = None, border = 'black')
 
-    if app.drawingDrag or app.moveShape:
+    if app.drawingDrag:
         startX, startY = app.dragStart
         endX, endY = app.dragEnd
-        print(f'drawing shape {app.dragStart, app.dragEnd}')
-        print(app.drawingDrag, app.moveShape)
-        #make them move!!
+        #if valid square
         if endX - startX > 0 and endY - startY > 0:
             drawRect(startX, startY, endX - startX, endY - startY, fill = None, 
                      border = 'black', dashes = True)
+
+    if app.moveShape:
+        drawRect(app.mouseX - app.mouseXtoLeftDif, app.mouseY - 
+                 app.mouseYtoTopDif, app.selectionWidth, app.selectionHeight, 
+                 fill = None, border = 'black', dashes = True)
+        
 
     #checks if mouse is hoovering over
     if app.backButton.isSelected(app.mouseX, app.mouseY):
@@ -776,26 +794,10 @@ def diy_redrawAll(app):
 
 ####IMAGE SCREEN####
 def image_onMousePress(app, mouseX, mouseY):
-    if app.rectTool:
-        app.drawingRect = True
-
-    if app.ovalTool:
-        app.drawingOval = True
-
-    if app.dragSelection:
-        app.drawingDrag = True
-        app.moveShape = False
-
-    if app.fillSelection:
-        app.filling = True
-
     # app.selectColorDropper = app.dragSelection = app.fillSelection = app.ovalTool = app.rectTool = False
     app.boardSelected = set()
 
     checkIconTools(app)
-
-    if app.eraser:
-        app.imageColorSelect = None
 
     if app.selectColorWheel:
         if app.imageColorSelectionPanel.wheelSelected(mouseX, mouseY):
@@ -1003,15 +1005,50 @@ def imageOptions_onMouseMove(app, mouseX, mouseY):
 
 def imageOptions_onMousePress(app, mouseX, mouseY):
     if app.createButton.isSelected(mouseX, mouseY):
-        setActiveScreen('image')
-        app.prevScreen = 'imageOptions'
+        if app.imageSelected:
+            setActiveScreen('image')
+            app.prevScreen = 'imageOptions'
+            updateSelectedImage(app)
     elif app.backButton.isSelected(mouseX, mouseY):
         setActiveScreen('start')
         app.prevScreen = 'imageOptions'
 
+    for image in app.selectedImages:
+        if image.isSelected(mouseX, mouseY):
+            app.imageSelected = True
+            app.selectedImage = image.name
+        
 def imageOptions_redrawAll(app):
-    drawLabel('Choose an Image:', app.width/2, app.height/6, size = 30)
+    #background
+    drawImage('imageOptionsBackground.png', 0, 0)
     #draw images
+    imagesAcross = 3
+    imagesDown = 2
+    whiteSpace = 50
+    potentialNums = [num for num in range(1, 12)]
+    if len(app.selectedImages) < imagesAcross * imagesDown:
+        for i in range(imagesAcross):
+            for j in range(imagesDown):
+                #randomize images
+                num = random.choice(potentialNums)
+                image = ImageOptions(num, whiteSpace*(i + 1) + i*200, 100 + 
+                                     whiteSpace/2*(j) + 150*(j))
+                app.selectedImages.add(image)
+                #prevents duplicates
+                potentialNums.remove(num)
+
+    #if mouse is hoovering above
+    for image in app.selectedImages:
+        if image.isSelected(app.mouseX, app.mouseY):
+            image.drawHighlight()
+        else:
+            image.draw()
+    
+    #if there is an image selected
+    if app.imageSelected:
+        for image in app.selectedImages:
+            if image.name == app.selectedImage:
+                image.drawSelected()
 
     app.createButton.drawButton()
     app.backButton.drawButton()
@@ -1021,6 +1058,18 @@ def imageOptions_redrawAll(app):
         app.createButton.drawHighlight()
     elif app.backButton.isSelected(app.mouseX, app.mouseY):
         app.backButton.drawHighlight()    
+
+def updateSelectedImage(app):
+    app.pilImage = Image.open(os.path.join('images', f'{app.selectedImage}.png')).convert('RGB')
+    app.originalImageWidth, app.originalImageHeight = app.pilImage.size
+    app.imageWidth, app.imageHeight = app.pilImage.size
+    app.hexCodeToFrequency = calculateHexCodes(app, app.pilImage)
+    app.mostFrequentHex = calculateMostFrequentHex(app)
+    changeImageDimensions(app)
+    pilImage = pixelate(app.pilImage, app.imagePixelsWide, 
+                        app.imagePixelsTall, app.imageWidth, app.imageHeight)
+    updateImageBoard(app, pilImage)
+    app.imageColorSelectionPanel.colorList = app.mostFrequentHex
 
 ####RESULT SCREEN####
 def result_onMouseMove(app, mouseX, mouseY):
