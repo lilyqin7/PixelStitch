@@ -31,9 +31,9 @@ class Handle:
         if self.slider.inBounds(mouseX, mouseY):
             self.cy = mouseY
         #min squares: 5, max: 50
-        print(self.cy)
         minSquares = 5
         numPossibilities = 45
         squaresPerPixel = numPossibilities/self.slider.height
         offset = self.cy - self.slider.topEdge
-        return int(offset * squaresPerPixel + minSquares)
+        numSquares = int(offset * squaresPerPixel + minSquares)
+        return numSquares
