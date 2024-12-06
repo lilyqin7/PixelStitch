@@ -1,7 +1,6 @@
 ####FEATURES I STILL NEED TO DO####
 ###################################
 # "move" selection on diy screen
-    # rectangle shape is not preserved
 # drag in specific shapes on diy screen
     # make them better
 # scroll bar
@@ -12,9 +11,9 @@
 #all backgrounds and images used in backgrounds: 
 #https://www.canva.com/design/DAGYShQAujk/OxH7z5xjpadCdniyeZAEgg/edit?utm_content=DAGYShQAujk&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
 
-#link to all image files: https://drive.google.com/file/d/17dOcwpKakfRUy7UWX38UtOujxa9dMTBI/view?usp=sharing 
+#link to all image files: https://drive.google.com/file/d/1jT-9pziOpiJH7XHoS11JsRwiN8srBptv/view?usp=sharing
 
-#image citations: https://docs.google.com/document/d/1fT-UJPKzTpPlPjaDBd1HXdmDL1TBXOJUnp3GDQunrz8/edit?usp=sharing
+#image citations in 'image' folder: https://docs.google.com/document/d/1fT-UJPKzTpPlPjaDBd1HXdmDL1TBXOJUnp3GDQunrz8/edit?usp=sharing
 
 from cmu_graphics import *
 from PIL import Image
@@ -22,16 +21,19 @@ from PIL import Image
 import random
 import os
 import time
+import webbrowser
 from drawGrid import drawGrid
 from hexCodeFunctions import calculateMostFrequentHex, calculateHexCodes
 from squareFunctions import isSquare, findSquare
 from floodFill import fillShape
 from buttons import Button
-from scrollbar import Scrollbar
 from slider import Slider, Handle
 from imageIcons import Icon
 from colorWheel import ColorSelection
 from imageOptions import ImageOptions
+
+def loadFont(app):
+    app.font = 'Times New Roman'  
 
 def diyScreenVariables(app):
     #sets necessary variables for controlling size/pixels of diy
@@ -45,6 +47,7 @@ def diyScreenVariables(app):
     app.diyBoardTop = app.height/2 - app.diyPixelsTall * 5
 
     app.diyColorSelect = None
+    app.diyPrevColor = None
 
     #colors on screen
     app.diyColors = ['pink', 'red', 'orange', 'yellow', 'green', 'blue', 
@@ -70,6 +73,7 @@ def imageScreenVariables(app):
 
     #variables for color select
     app.imageColorSelect = None
+    app.imagePrevColor = None
 
     app.preserveAspectRatio = False
 
@@ -106,6 +110,8 @@ def editingVariables(app):
 
     app.selectedFromColorWheel = False
     app.selectedColorFromWheel = (0, 0, 0)
+    app.mousePressOnColors = 0, 0
+    app.colorPanelSelected = False
 
     app.dragSelection = False
     app.dragHighlight = False
@@ -154,25 +160,30 @@ def screenVariables(app):
 
 def buttons(app):
     #used in welcome screen
-    app.instructionsButton = Button('Instructions', app.width/3, app.height*7/16,
-                                     app.width/3, app.height/8, 25)
-    app.startButton = Button('Start', app.width/3, app.height*10/16, app.width/3, 
-                             app.height/8, 25 )
+    app.instructionsButton = Button('Instructions', app.width/3, app.height*7/16
+                                    , app.width/3, app.height/8, 25, app.font)
+    app.startButton = Button('Start', app.width/3, app.height*10/16, app.width/3 
+                             , app.height/8, 25, app.font)
 
     #used in start screen
     app.diyButton = Button('Create Your Own', app.width/12, app.height/7, 
-                           app.width/3, app.height/8, 25)
+                           app.width/3, app.height/8, 25, app.font)
     app.imageButton = Button('Image', app.width*7/12, app.height/7, 
-                             app.width/3, app.height/8, 25)
+                             app.width/3, app.height/8, 25, app.font)
 
     #used in image options screen
-    app.createButton = Button('Create', 650, 450, 100, 30, 15)
+    app.createButton = Button('Create', 650, 450, 100, 30, 15, app.font)
 
     #used in image and diy screens
-    app.generateButton = Button('Generate', 650, 450, 100, 30, 15)
+    app.generateButton = Button('Generate', 650, 450, 100, 30, 15, app.font)
 
     #used in almost all screens
-    app.backButton = Button('Back', 50, 450, 100, 30, 15)
+    app.backButton = Button('Back', 50, 450, 100, 30, 15, app.font)
+
+    #links to external site
+    app.instructionsVideoButton = Button('Watch Me!', 90, 225, 120, 30, 15, 
+                                         app.font)
+    app.videoButton = Button('Tutorial', 20, 20, 120, 30, 15, app.font)
 
 def sliders(app):
     #draw backgrounds
@@ -227,6 +238,7 @@ def toolIcons(app):
 
 def onAppStart(app):
     app.setMaxShapeCount(3000)
+    loadFont(app)
     screenVariables(app)
     diyScreenVariables(app)
     imageScreenVariables(app)
@@ -237,11 +249,12 @@ def onAppStart(app):
     toolIcons(app)
     imageOptions(app)
 
-    # app.scrollbar = Scrollbar(8)
+def openLink():
+    #video from Bella Coco on YouTube
+    webbrowser.open('https://youtu.be/I5G9IM24LFU?si=iJNF4AvXXI77joLn')
 
 ####USED ON IMAGE SCREEN
 def pixelate(image, pixelsWide, pixelsTall, width, height):
-    # print(pixelsWide, pixelsTall, width, height)
     image = image.resize((pixelsWide, pixelsTall), Image.NEAREST)
     return image.resize((width, height), Image.NEAREST)
 
@@ -263,7 +276,8 @@ def changeImageDimensions(app):
 def updateColor(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, 
                 pixelsTall):
     if (not app.drawingRect and not app.drawingOval and not app.moveShape and 
-        not app.drawingDrag and not app.filling):
+        not app.drawingDrag and not app.filling and not 
+        app.diyColorSelectionPanel.isDragging):
         if isSquare(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
             row, col = findSquare(app, mouseX, mouseY, board, boardLeft, boardTop)
             board[row][col] = app.diyColorSelect
@@ -307,7 +321,6 @@ def image_change(app):
     updateImageBoard(app, pilImage)
 
 def diy_change(app):
-
     app.diyBoard = resizingBoard(app, app.diyBoard, app.diyPixelsWide, 
                                  app.diyPixelsTall)
     app.diyBoardLeft = app.width/2 - app.diyPixelsWide * 5
@@ -326,6 +339,7 @@ def resizingBoard(app, board, pixelsWide, pixelsTall):
 
 def updateMouse(app, mouseX, mouseY):
     app.mouseX, app.mouseY = mouseX, mouseY
+    app.mousePressOnColors = mouseX, mouseY
 
 def findColorDropperColor(app, mouseX, mouseY, board, boardLeft, boardTop, 
                           pixelsWide, pixelsTall):
@@ -426,7 +440,6 @@ def drawSliders(app):
 def drawIcons(app):
     #selected color square
     color = None
-    # print(app.colorSelect, app.imageColorSelect)
     if app.colorSelect != None:
         color = app.colorSelect
     elif app.currentScreen == 'diy':
@@ -465,6 +478,7 @@ def checkIconTools(app):
         app.eraser = not app.eraser
         # if app.eraser:
         #     app.imageColorSelect = None
+        #     app.colorSelect = None
     elif app.fillIcon.isSelected(app.mouseX, app.mouseY):
         app.fillSelection = not app.fillSelection
         # if app.fillSelection:
@@ -482,8 +496,11 @@ def checkIconTools(app):
         app.ovalTool = not app.ovalTool
         # if app.ovalTool:
         #     app.drawingOval = True
+    elif app.eraser:
+        if not isSquare(app, app.mouseX, app.mouseY, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
+            app.eraser = False
     else:
-        app.selectColorDropper = app.dragSelection = app.fillSelection = app.ovalTool = app.rectTool = app.eraser = False
+        app.selectColorDropper = app.dragSelection = app.fillSelection = app.ovalTool = app.rectTool = False
 
 def checkIconHighlights(app):
     if app.colorIcon.isSelected(app.mouseX, app.mouseY):
@@ -529,55 +546,82 @@ def checkAspectRatio(app, mouseX, mouseY):
     sliderLeft, sliderRight = 760, 795
     widthSliderTop, widthSliderBottom = 75, 225
     heightSliderTop, heightSliderBottom = 275, 425
-    print(widthToHeightRatio)
-    #if user just checked aspect ratio box and hasn't adjusted controls (base case)
-    app.imageWidthSliderHandle.cy = (widthToHeightRatio * 
-                                     (app.imageHeightSliderHandle.cy - 
-                                      heightSliderTop)) + widthSliderTop
-
-    if (widthSliderTop <= mouseY <= widthSliderBottom and sliderLeft <= 
-        mouseX <= sliderRight):
-        app.imageWidthSliderHandle.cy = mouseY
-        app.imageHeightSliderHandle.cy = (((app.imageWidthSliderHandle.cy - 
-                                           widthSliderTop)/widthToHeightRatio) 
-                                           + heightSliderTop)
-    elif (heightSliderTop <= mouseY <= heightSliderBottom and sliderLeft <= 
-          mouseX <= sliderRight):
-        app.imageHeightSliderHandle.cy = mouseY
-        app.imageWidthSliderHandle.cy = (((app.imageHeightSliderHandle.cy - 
-                                           heightSliderTop)* widthToHeightRatio) 
-                                           + widthSliderTop)
+   
+    if app.widthSlider.inBounds(mouseX, mouseY):
+        app.imageWidthSliderHandle.cy = max(min(mouseY, widthSliderBottom), widthSliderTop)
+        app.imageHeightSliderHandle.cy = (((app.imageWidthSliderHandle.cy - widthSliderTop) / widthToHeightRatio) + heightSliderTop)
+    elif app.heightSlider.inBounds(mouseX, mouseY):
+        app.imageHeightSliderHandle.cy = max(min(mouseY, heightSliderBottom), heightSliderTop)
+        app.imageWidthSliderHandle.cy = (((app.imageHeightSliderHandle.cy - heightSliderTop) * widthToHeightRatio) + widthSliderTop)
+    else: 
+        app.imageWidthSliderHandle.cy = (widthToHeightRatio * 
+                                        (app.imageHeightSliderHandle.cy - 
+                                         heightSliderTop)) + widthSliderTop
     
-    #keeps width slider in bounds
-    if app.imageWidthSliderHandle.cy > widthSliderBottom:
-        app.imageWidthSliderHandle.cy = widthSliderBottom
-        app.imageHeightSliderHandle.cy = (((app.imageWidthSliderHandle.cy - 
-                                           widthSliderTop)/widthToHeightRatio) 
-                                           + heightSliderTop)
-    elif app.imageWidthSliderHandle.cy < widthSliderTop:
-        app.imageWidthSliderHandle.cy = widthSliderTop
-        app.imageHeightSliderHandle.cy = (((app.imageWidthSliderHandle.cy - 
-                                            widthSliderTop)/widthToHeightRatio) 
-                                            + heightSliderTop)
+    # app.imageWidthSliderHandle.cy = max(min(app.imageWidthSliderHandle.cy, widthSliderBottom), widthSliderTop)
+    # app.imageHeightSliderHandle.cy = max(min(app.imageHeightSliderHandle.cy, heightSliderBottom), heightSliderTop)
 
-    #keeps height slider in bounds
+    # print(app.imageWidthSliderHandle.cy, app.imageHeightSliderHandle.cy)
+
+    # app.imageHeightSliderHandle.cy = (((app.imageWidthSliderHandle.cy - widthSliderTop) / widthToHeightRatio) + heightSliderTop)
     if app.imageHeightSliderHandle.cy > heightSliderBottom:
+        print('1')
         app.imageHeightSliderHandle.cy = heightSliderBottom
-        app.imageWidthSliderHandle.cy = (((app.imageHeightSliderHandle.cy - 
-                                           heightSliderTop)*widthToHeightRatio) 
-                                           + widthSliderTop)
+        app.imageWidthSliderHandle.cy = (((app.imageHeightSliderHandle.cy - heightSliderTop) * widthToHeightRatio) + widthSliderTop)
     elif app.imageHeightSliderHandle.cy < heightSliderTop:
+        print('2')
         app.imageHeightSliderHandle.cy = heightSliderTop
-        app.imageWidthSliderHandle.cy = (((app.imageHeightSliderHandle.cy - 
-                                           heightSliderTop)*widthToHeightRatio) 
-                                           + widthSliderTop)
+        app.imageWidthSliderHandle.cy = (((app.imageHeightSliderHandle.cy - heightSliderTop) * widthToHeightRatio) + widthSliderTop)
+
+    elif app.imageWidthSliderHandle.cy > widthSliderBottom:
+        print('3')
+        app.imageWidthSliderHandle.cy = widthSliderBottom
+        app.imageHeightSliderHandle.cy = (((app.imageWidthSliderHandle.cy - heightSliderTop) / widthToHeightRatio) + widthSliderTop)
+    elif app.imageWidthSliderHandle.cy < widthSliderTop:
+        print('4')
+        app.imageWidthSliderHandle.cy = widthSliderTop
+        app.imageHeightSliderHandle.cy = (((app.imageWidthSliderHandle.cy - heightSliderTop) / widthToHeightRatio) + widthSliderTop)
+    #keeps width slider in bounds
+    # if app.imageWidthSliderHandle.cy > widthSliderBottom:
+    #     print('1')
+    #     app.imageWidthSliderHandle.cy = widthSliderBottom
+    #     app.imageHeightSliderHandle.cy = (((app.imageWidthSliderHandle.cy - 
+    #                                        widthSliderTop)/widthToHeightRatio) 
+    #                                        + heightSliderTop)
+    #     print(app.imageWidthSliderHandle.cy, app.imageHeightSliderHandle.cy)
+    # elif app.imageWidthSliderHandle.cy < widthSliderTop:
+    #     print('2')
+    #     app.imageWidthSliderHandle.cy = widthSliderTop
+    #     app.imageHeightSliderHandle.cy = (((app.imageWidthSliderHandle.cy - 
+    #                                         widthSliderTop)/widthToHeightRatio) 
+    #                                         + heightSliderTop)
+
+    # #keeps height slider in bounds
+    # elif app.imageHeightSliderHandle.cy > heightSliderBottom:
+    #     print('3')
+    #     app.imageHeightSliderHandle.cy = heightSliderBottom
+    #     app.imageWidthSliderHandle.cy = (((app.imageHeightSliderHandle.cy - 
+    #                                        heightSliderTop)*widthToHeightRatio) 
+    #                                        + widthSliderTop)
+    # elif app.imageHeightSliderHandle.cy < heightSliderTop:
+    #     print('4')
+    #     app.imageHeightSliderHandle.cy = heightSliderTop
+    #     app.imageWidthSliderHandle.cy = (((app.imageHeightSliderHandle.cy - 
+    #                                        heightSliderTop)*widthToHeightRatio) 
+    #                                        + widthSliderTop)
+        
+    # print(app.imageWidthSliderHandle.cy, app.imageHeightSliderHandle.cy, (app.imageWidthSliderHandle.cy - 75)/(app.imageHeightSliderHandle.cy - 275))
 
 ####DIY SCREEN####
 def diy_onMouseMove(app, mouseX, mouseY):
     app.currentScreen = 'diy'
     updateMouse(app, mouseX, mouseY)
-
     checkIconHighlights(app)
+
+    # if app.selectColorWheel:
+    #     if app.diyColorSelectionPanel.wheelSelected(mouseX, mouseY):
+    #         print('hiii')
+    #         app.diyColorSelectionPanel.selectedFromColorWheel = False
 
     #for double click
     if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, 
@@ -587,7 +631,7 @@ def diy_onMouseMove(app, mouseX, mouseY):
         app.doubleClickColor = app.diyBoard[row][col]
 
     if app.selectColorWheel:
-        #checks if in color grid
+        #checks if mouse in color grid
         app.colorSelect = app.diyColorSelectionPanel.colorGridSelected(mouseX, mouseY)
         #checks if in gradient grid or in color wheel
         app.colorSelect = app.diyColorSelectionPanel.getColorWheelColor(mouseX, mouseY)
@@ -603,13 +647,15 @@ def diy_onMouseMove(app, mouseX, mouseY):
             app.colorSelect = app.diyBoard[row][col]
         else:
             app.colorDropperColor = None
-    
+
 def diy_onMouseDrag(app, mouseX, mouseY):
     # if app.diyColorSelectionPanel.isSelected(mouseX, mouseY):
     #     app.diyColorSelectionPanel.move(mouseX, mouseY)
 
-    app.mouseX = mouseX
-    app.mouseY = mouseY
+    # updateMouse(mouseX, mouseY)
+
+    if app.diyColorSelectionPanel.startDragging:
+        app.diyColorSelectionPanel.move(mouseX, mouseY)
 
     if app.drawingRect:
         rectTool(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, 
@@ -624,55 +670,61 @@ def diy_onMouseDrag(app, mouseX, mouseY):
 
         #need to find way to make sure if user moves mouse the selected squares change too
 
-    #size of move is not being preserved?????
     if app.moveShape:
+        print('byyy')
         xStart, yStart = app.moveStart
         xOffset = mouseX - xStart
         yOffset = mouseY - yStart
-        print('moveStart', app.moveStart)
 
         # Update the rectangle's position
-        startX, startY = app.dragStart
-        app.dragStart = (startX + xOffset, startY + yOffset)
-        app.dragEnd = (startX + xOffset + app.selectionWidth, startY + yOffset 
+        # startX, startY = app.dragStart
+        app.dragStart = (xStart + xOffset, yStart + yOffset)
+        app.dragEnd = (xStart + xOffset + app.selectionWidth, yStart + yOffset 
                        + app.selectionHeight)
-        app.moveEnd = mouseX, mouseY
+        app.moveStart = mouseX, mouseY
 
 
     if app.drawingDrag:
+        print('hiii')
         app.dragEnd = mouseX, mouseY
-        # xStart, yStart = app.dragStart
-        # for x in range(xStart, mouseX, 10):
-        #     for y in range(yStart, mouseY, 10):
-        #         if isSquare(app, x, y, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
-        #             row, col = findSquare(app, x, y, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
-        #             app.boardSelected.add((row, col))
+        xStart, yStart = app.dragStart
+        for x in range(xStart, mouseX, 10):
+            for y in range(yStart, mouseY, 10):
+                if isSquare(app, x, y, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
+                    row, col = findSquare(app, x, y, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
+                    app.boardSelected.add((row, col))
     # print(app.boardSelected)       
 
     app.diyBoard = updateColor(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, 
                                app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
 
 def diy_onMousePress(app, mouseX, mouseY):
-
-    # if app.diyColorSelectionPanel.isSelected(mouseX, mouseY):
-    #     app.diyColorSelectionPanel.initializeMove(mouseX, mouseY)
-    #     print(app.diyColorSelectionPanel.distanceFromMouseXtoLeft)
-
+    #updates color
     if app.selectColorWheel:
         if app.diyColorSelectionPanel.wheelSelected(mouseX, mouseY):
+            print('hiiiii')
             app.diyColorSelectionPanel.selectedColorFromWheel = app.diyColorSelectionPanel.getPixel(mouseX, mouseY)
+            print('')
             app.diyColorSelectionPanel.selectedFromColorWheel = True
+        # elif app.diyColorSelectionPanel.colorGridSelected(mouseX, mouseY):
+        #     app.diyColorSelectionPanel.selectedColor = app.diyColorSelect
+        #     app.diyColorSelectionPanel.selectedFromColorGrid = True
+        #potential start dragging the panel
+        elif app.diyColorSelectionPanel.isSelected(mouseX, mouseY):
+            app.diyColorSelectionPanel.startMove(mouseX, mouseY)
         else:
             app.diyColorSelectionPanel.selectedFromColorWheel = False
 
     app.boardSelected = set()
-
-    checkIconTools(app)
+    
     checkIconEditing(app)
-    print(app.rectTool, app.drawingRect)
+    checkIconTools(app)
 
+    #if user is hoovering over a color, app.diyColorSelect will hold last clicked color
     if app.colorSelect != None:
         app.diyColorSelect = app.colorSelect
+    # elif app.colorSelect == None:
+    #     app.diyColorSelectionPanel.selectedColorFromWheel = app.diyColorSelect
 
     #change width and height sliders
     app.diyPixelsWide = changeSliders(app, mouseX, mouseY, app.diyWidthSliderHandle)
@@ -695,18 +747,12 @@ def diy_onMousePress(app, mouseX, mouseY):
         app.ovalToolStart = mouseX, mouseY
         app.ovalToolEnd = mouseX + 1, mouseY + 1
 
-    if app.filling:
-        if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, 
-                    app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
-            app.diyBoard = fillShape(app, app.diyColorSelect, mouseX, mouseY, 
-                                     app.diyBoard, app.diyBoardLeft, 
-                                     app.diyBoardTop)
-
     if app.drawingDrag:
         startX, startY = min(app.dragStart[0], app.dragEnd[0]), min(app.dragStart[1], app.dragEnd[1])
         endX, endY = max(app.dragStart[0], app.dragEnd[0]), max(app.dragStart[1], app.dragEnd[1])
         #actually moving the box
         if startX < mouseX < endX and startY < mouseY < endY:
+            print('psss')
             app.moveShape = True
             app.moveStart = mouseX, mouseY
             app.selectionWidth = endX - startX
@@ -719,6 +765,14 @@ def diy_onMousePress(app, mouseX, mouseY):
             app.dragStart = mouseX, mouseY
             app.dragEnd = mouseX + 1, mouseY + 1
 
+    if app.filling:
+        if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, 
+                    app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
+            app.diyBoard = fillShape(app, app.diyColorSelect, mouseX, mouseY, 
+                                     app.diyBoard, app.diyBoardLeft, 
+                                     app.diyBoardTop)
+            app.filling = False
+
     #check buttons
     if app.backButton.isSelected(mouseX, mouseY):
         setActiveScreen('start')
@@ -728,6 +782,8 @@ def diy_onMousePress(app, mouseX, mouseY):
         app.prevScreen = 'diy'
 
 def diy_onMouseRelease(app, mouseX, mouseY):
+    app.diyColorSelectionPanel.endMove()
+
     if app.drawingRect:
         app.rectToolEnd = mouseX, mouseY
         app.drawingRect = False
@@ -781,6 +837,7 @@ def diy_redrawAll(app):
                      border = 'black', dashes = True)
 
     if app.moveShape:
+        print('dkjdjd')
         drawRect(app.mouseX - app.mouseXtoLeftDif, app.mouseY - 
                  app.mouseYtoTopDif, app.selectionWidth, app.selectionHeight, 
                  fill = None, border = 'black', dashes = True)
@@ -794,21 +851,27 @@ def diy_redrawAll(app):
 
 ####IMAGE SCREEN####
 def image_onMousePress(app, mouseX, mouseY):
-    # app.selectColorDropper = app.dragSelection = app.fillSelection = app.ovalTool = app.rectTool = False
     app.boardSelected = set()
 
+    checkIconEditing(app)
     checkIconTools(app)
 
     if app.selectColorWheel:
         if app.imageColorSelectionPanel.wheelSelected(mouseX, mouseY):
+            print('hiiiii')
             app.imageColorSelectionPanel.selectedColorFromWheel = app.imageColorSelectionPanel.getPixel(mouseX, mouseY)
             app.imageColorSelectionPanel.selectedFromColorWheel = True
+        #potential start dragging the panel
+        elif app.imageColorSelectionPanel.isSelected(mouseX, mouseY):
+            app.imageColorSelectionPanel.startMove(mouseX, mouseY)
         else:
             app.imageColorSelectionPanel.selectedFromColorWheel = False
 
     #checks if checked aspect ratio button
-    if app.sliderCenter - 20 <= mouseX <= app.sliderCenter + 20 and 40 <= mouseY <= 60:
-        print('hi')
+    boxTop = 30
+    width = 20
+    if (app.sliderCenter - width/2 <= mouseX <= app.sliderCenter + width/2 and 
+        boxTop <= mouseY <= boxTop + width/2):
         app.preserveAspectRatio = not app.preserveAspectRatio
 
     #aspect ratio
@@ -838,8 +901,6 @@ def image_onMousePress(app, mouseX, mouseY):
         setActiveScreen('result')
         app.prevScreen = 'image'
 
-    # checkColorControls(app, mouseX, mouseY)
-    # checkEditingTools(app, mouseX, mouseY)
     checkDoubleClick(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
                      app.imageBoardTop, app.imagePixelsWide, 
                      app.imagePixelsTall, app.imageColorSelect)
@@ -852,14 +913,17 @@ def image_onMousePress(app, mouseX, mouseY):
         app.ovalToolStart = mouseX, mouseY
         app.ovalToolEnd = mouseX + 1, mouseY + 1
 
-    if app.filling:
-        if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
-                    app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
-            app.imageBoard = fillShape(app, app.imageColorSelect, mouseX, mouseY, 
-                                     app.imageBoard, app.imageBoardLeft, 
-                                     app.imageBoardTop)
+    # if app.filling:
+    #     if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
+    #                 app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
+    #         app.imageBoard = fillShape(app, app.imageColorSelect, mouseX, mouseY, 
+    #                                  app.imageBoard, app.imageBoardLeft, 
+    #                                  app.imageBoardTop)
 
 def image_onMouseDrag(app, mouseX, mouseY):
+    if app.imageColorSelectionPanel.startDragging:
+        app.imageColorSelectionPanel.move(mouseX, mouseY)
+
     if app.drawingRect:
         rectTool(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
                  app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall)
@@ -942,6 +1006,8 @@ def image_onMouseMove(app, mouseX, mouseY):
         app.imageColorSelect = app.colorSelect
 
 def image_onMouseRelease(app, mouseX, mouseY):
+    app.imageColorSelectionPanel.endMove()
+
     if app.drawingRect:
         app.rectToolEnd = mouseX, mouseY
         app.drawingRect = False
@@ -957,14 +1023,13 @@ def image_onMouseRelease(app, mouseX, mouseY):
         app.moveShape = False
         app.drawingDrag = False
 
+    if app.drawingDrag:
+        app.dragEnd = mouseX, mouseY
+
 def image_redrawAll(app):
     app.backButton.drawButton()
     app.createButton.drawButton()
-    # drawControls(app, app.imageWidthSlider, app.imageHeightSlider, 
-                #  app.imagePixelsWide, app.imagePixelsTall)
     drawGrid(app, app.imageBoard, app.imageBoardLeft, app.imageBoardTop, 400)
-    # drawColorPanel(app, app.mostFrequentHex, app.mouseX, app.mouseY)
-    # drawUserColorSelection(app, app.mouseX, app.mouseY)
     drawSliders(app)
     if app.selectColorWheel:
         app.imageColorSelectionPanel.draw()
@@ -985,12 +1050,14 @@ def image_redrawAll(app):
         drawOval(centerX, centerY, x1 - x0, y1 - y0, fill = None, border = 'black')
 
     #preserve aspect ratio checkbox
-    color = None
     if app.preserveAspectRatio:
-        color = 'pink'
-        #draw white checkmark
-    drawRect(app.sliderCenter, 40, 20, 20, fill = color, border = 'black', 
-             align = 'center')
+        top = 30
+        height, width = 20, 20
+        drawImage('checkmark.png', app.sliderCenter - 10, top, width = width, 
+                  height = height)
+    else:
+        drawRect(app.sliderCenter, 40, 20, 20, fill = None, border = 'pink', 
+                 align = 'center')
 
     #checks if mouse is hoovering over
     if app.backButton.isSelected(app.mouseX, app.mouseY):
@@ -1080,14 +1147,32 @@ def result_onMousePress(app, mouseX, mouseY):
     if app.backButton.isSelected(mouseX, mouseY):
         setActiveScreen(app.prevScreen)
         app.prevScreen = 'result'
+    
+    if app.videoButton.isSelected(mouseX, mouseY):
+        openLink()
 
 def result_redrawAll(app):
+    drawImage('resultBackground.png', 0, 0)
     app.backButton.drawButton()
+    #in top left
+    app.videoButton.drawButton()
+    if app.prevScreen == 'diy':
+        drawLabel(f'{app.diyPixelsWide} x {app.diyPixelsTall} squares', 
+                  (app.videoButton.leftEdge*2 + app.videoButton.width)/2, 
+                  (app.videoButton.topEdge*2 + app.videoButton.height), 
+                  font = app.font)
+    elif app.prevScreen == 'image':
+        drawLabel(f'{app.imagePixelsWide} x {app.imagePixelsTall} squares',
+                  (app.videoButton.leftEdge*2 + app.videoButton.width)/2, 
+                  (app.videoButton.topEdge*2 + app.videoButton.height),
+                  font = app.font)
+
 
     if app.backButton.isSelected(app.mouseX, app.mouseY):
         app.backButton.drawHighlight()
 
-    drawLabel('Pattern', app.width/2, app.height/8, size = 20)
+    if app.videoButton.isSelected(app.mouseX, app.mouseY):
+        app.videoButton.drawHighlight()
 
     #draws design
     if app.prevScreen == 'image':
@@ -1134,12 +1219,19 @@ def instructions_onMousePress(app, mouseX, mouseY):
     if app.backButton.isSelected(mouseX, mouseY):
         setActiveScreen('welcome')
         app.prevScreen = 'instructions'
+    elif app.instructionsVideoButton.isSelected(mouseX, mouseY):
+        openLink()
 
 def instructions_redrawAll(app):
+    drawImage('instructionsBackground.png', 0, 0)
+    app.instructionsVideoButton.drawButton()
     app.backButton.drawButton()
 
+    #if mouse is hoovering over buttons
     if app.backButton.isSelected(app.mouseX, app.mouseY):
         app.backButton.drawHighlight()
+    elif app.instructionsVideoButton.isSelected(app.mouseX, app.mouseY):
+        app.instructionsVideoButton.drawHighlight()
 
 ####WELCOME SCREEN####
 def welcome_onMouseMove(app, mouseX, mouseY):
@@ -1154,8 +1246,6 @@ def welcome_onMousePress(app, mouseX, mouseY):
         setActiveScreen('start')
         app.prevScreen = 'welcome'
 
-    # app.scrollbar.calculateHeight(1000)
-
 def welcome_redrawAll(app):
     drawImage('welcomeBackground.png', 0, 0)
     app.instructionsButton.drawButton()
@@ -1165,10 +1255,8 @@ def welcome_redrawAll(app):
         app.instructionsButton.drawHighlight()
     elif app.startButton.isSelected(app.mouseX, app.mouseY):
         app.startButton.drawHighlight()
-    
-    # app.scrollbar.drawScrollBar()
-    # app.scrollbar.drawHandle()
 
+####MAIN####
 def main():
     runAppWithScreens(initialScreen = 'welcome', width = app.width, 
                       height = app.height)

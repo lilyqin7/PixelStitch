@@ -17,55 +17,79 @@ class ColorSelection:
         self.wheelRadius = 50
         #gradient box variables
         self.rectLeft = self.leftEdge + self.whiteSpace - 10
-        self.rectTop = self.topEdge + self.whiteSpace + 120
+        self.rectTop = self.topEdge + self.height - 4.5*self.whiteSpace
         self.rectWidth, self.rectHeight = 120, 20
         #https://www.clipartmax.com/download/m2i8G6N4A0N4A0H7_color-color-wheel-wheel-icon-color-wheel-transparent-background/ 
         self.wheelImage = Image.open('colorwheel.png').resize((self.wheelWidth, 
-                                                               self.wheelHeight))
-
+                                                              self.wheelHeight))
+        #colorselect variables
+        #self.colorSelect for hoovering only
         self.colorSelect = None
         self.selectedFromColorWheel = False
         self.selectedColorFromWheel = (0, 0, 0)
 
-        #move variables
+        #dragging state
+        self.startDragging = False
+        self.isDragging = False
         self.distanceFromMouseXtoLeft = 0
         self.distanceFromMouseYtoTop = 0
 
     def draw(self):
+        if self.isDragging:
+            drawImage('panelHighlight.png', self.leftEdge - 10, self.topEdge - 
+                      10, width = self.width + 20, height = self.height + 20)
         #draw background
-        drawRect(self.leftEdge, self.topEdge, self.width, self.height, 
+        else:
+            drawRect(self.leftEdge, self.topEdge, self.width, self.height, 
                  fill = 'white', border = 'black')
+        #draw color wheel
+        drawImage(CMUImage(self.wheelImage), self.wheelLeft, self.wheelTop)
+        #draw color panels
+        self.drawColorPanel()
+        #draw gradient box
+        self.drawGradientBox()
+
+    def drawSelected(self, mouseX, mouseY):
+        #background, must move with mouse
+        self.move(mouseX, mouseY)
+        drawImage('buttonHighlight.png', self.leftEdge - 10, self.topEdge - 10,
+                  width = self.width + 20, height = self.height + 20)
         #draw color wheel
         drawImage(CMUImage(self.wheelImage), self.leftEdge + self.whiteSpace, 
                   self.topEdge + self.whiteSpace)
         #draw color panels
         self.drawColorPanel()
         #draw gradient box
-        print(self.selectedFromColorWheel)
+        self.drawGradientBox()
+
+    def drawGradientBox(self):
         #if user has selected color from wheel
         if self.selectedFromColorWheel:
             color = rgb(self.selectedColorFromWheel[0], 
                         self.selectedColorFromWheel[1], 
                         self.selectedColorFromWheel[2])
-            drawRect(self.rectLeft, self.rectTop, self.rectWidth, self.rectHeight, fill = 
-                     gradient('white', color, 'black', start = 'left'), 
-                     border = 'black')
-        #if mosue is hoovering over circle
+            print(color)
+            drawRect(self.rectLeft, self.rectTop, self.rectWidth, 
+                     self.rectHeight, fill = gradient('white', color, 'black', 
+                     start = 'left'), border = 'black')
+        #if mouse is hoovering over circle or grid
         elif self.colorSelect != None:
-            drawRect(self.rectLeft, self.rectTop,self.rectWidth, self.rectHeight, 
-                     fill = gradient('white', self.colorSelect, 'black', start 
-                                     = 'left'), border = 'black')
+            print(self.colorSelect)
+            drawRect(self.rectLeft, self.rectTop, self.rectWidth, 
+                     self.rectHeight, fill = gradient('white', self.colorSelect,
+                                                      'black', start = 'left'), 
+                                                      border = 'black')
         else:
-            drawRect(self.rectLeft, self.rectTop, self.rectWidth, self.rectHeight, fill = 
-                     gradient('white', 'black', start = 'left'), border = 'black')
-
-
+            drawRect(self.rectLeft, self.rectTop, self.rectWidth, 
+                     self.rectHeight, fill = gradient('white', 'black', start = 
+                                                      'left'), border = 'black')
+        
     def drawColorPanel(self):
         for i in range(len(self.colorList)):
             row, col = i % 5, i // 5
             width, height = 20, 20
             borderWidth = 2
-            topEdge = 260
+            topEdge = self.topEdge + self.height - self.whiteSpace - 40
             if isinstance(self.colorList[i], str):
                 drawRect(self.leftEdge + self.whiteSpace + row*width, topEdge + 
                          col*height, width + borderWidth, height + borderWidth, 
@@ -73,9 +97,9 @@ class ColorSelection:
             else:
                 rgbVal = self.colorList[i]
                 color = rgb(rgbVal[0], rgbVal[1], rgbVal[2])
-                drawRect(self.leftEdge + row*width + self.whiteSpace, topEdge + col*height, width + 
-                         borderWidth, height + borderWidth, fill = color, 
-                         border = 'black')
+                drawRect(self.leftEdge + row*width + self.whiteSpace, topEdge + 
+                         col*height, width + borderWidth, height + borderWidth, 
+                         fill = color, border = 'black')
                 
     def isSelected(self, mouseX, mouseY):
         return (self.leftEdge <= mouseX <= self.leftEdge + self.width and 
@@ -93,9 +117,9 @@ class ColorSelection:
     def colorGridSelected(self, mouseX, mouseY):
         row, col = -1, -1
         width, height = 20, 20
-        startX, startY = self.leftEdge + self.whiteSpace, 260
+        startX = self.leftEdge + self.whiteSpace
+        startY = self.topEdge + self.height - self.whiteSpace - 40
         borderWidth = 2
-        print(self.leftEdge, self.topEdge)
         #calculate row based on mouseX position
         if (startX <= mouseX <= startX + width):
             col = 0
@@ -121,7 +145,7 @@ class ColorSelection:
         if row > -1 and col > -1:
             numCols = 5
             index = row*numCols + col
-            print('hi', index)
+            # print('hi', index)
             if index < len(self.colorList):
                 self.colorSelect = self.colorList[index]
             else:
@@ -139,7 +163,8 @@ class ColorSelection:
                                          self.wheelTop))
     
     #with assistance from chatGPT
-    def getGradientColor(self, mouseX, x0, x1, startColor, middleColor, endColor):
+    def getGradientColor(self, mouseX, x0, x1, startColor, middleColor, 
+                         endColor):
         midX = (x0 + x1) / 2
         if mouseX <= midX:
             r1, g1, b1 = startColor
@@ -172,18 +197,30 @@ class ColorSelection:
         self.convertToRGB()
         return self.colorSelect
     
-    def initializeMove(self, mouseX, mouseY):
+    def startMove(self, mouseX, mouseY):
+        self.startDragging = True
         self.distanceFromMouseXtoLeft = mouseX - self.leftEdge
         self.distanceFromMouseYtoTop = mouseY - self.topEdge
 
     def move(self, mouseX, mouseY):
-        self.leftEdge = self.distanceFromMouseXtoLeft + mouseX
-        self.topEdge = self.distanceFromMouseYtoTop + mouseY
+        if self.startDragging:
+            self.isDragging = True
+        self.leftEdge = mouseX - self.distanceFromMouseXtoLeft
+        self.topEdge = mouseY - self.distanceFromMouseYtoTop
+        self.rectLeft = self.leftEdge + self.whiteSpace - 10
+        self.rectTop = self.topEdge + self.height - 4.5*self.whiteSpace
+        self.wheelLeft = self.leftEdge + self.whiteSpace
+        self.wheelTop = self.topEdge + self.whiteSpace
+
+    def endMove(self):
+        self.startDragging = False
+        self.isDragging = False
 
     #converts (r, g, b) to rgb(r, g, b), necessary for drawing color
     def convertToRGB(self):
         if self.colorSelect != None:
-            if (isinstance(self.colorSelect, tuple) and len(self.colorSelect) == 3 and 
-                all(isinstance(c, int) for c in self.colorSelect)): #with assistance from chatGPT
+            #with minor assistance from chatGPT on all() part
+            if (isinstance(self.colorSelect, tuple) and len(self.colorSelect) 
+                == 3 and all(isinstance(c, int) for c in self.colorSelect)): 
                 self.colorSelect = rgb(self.colorSelect[0], self.colorSelect[1], 
                                       self.colorSelect[2])

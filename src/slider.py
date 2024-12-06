@@ -37,3 +37,4 @@ class Handle:
         offset = self.cy - self.slider.topEdge
         numSquares = int(offset * squaresPerPixel + minSquares)
         return numSquares
+    
