@@ -11,6 +11,7 @@ def calculateMostFrequentHex(app):
             if hexFrequency[val] > num:
                 num = hexFrequency[val]
                 code = val
+        #adds new value frequent, removes from old dictionary
         frequent.append(code)
         hexFrequency.pop(code)
         #search through app.mostFrequentHex and pop too similar colors
@@ -23,14 +24,17 @@ def calculateMostFrequentHex(app):
             k = j + 1
             while k < len(frequent):
                 nextVal = frequent[k]
-                #if all 3 rgb values are less than 50, colors are too similar
-                if abs(nextVal[0] - r) < 50 and abs(nextVal[1] - g) < 50 and abs(nextVal[2] - b) < 50:
+        #if all rgb differences are less than threshold, colors are too similar
+                threshold = 50
+                if (abs(nextVal[0] - r) < threshold and abs(nextVal[1] - g) < 
+                    threshold and abs(nextVal[2] - b) < threshold):
                     frequent.pop()
                 k += 1
             j += 1
     return frequent
    
-#goes through all x and y computer pixels and calculates the frequncy of each color
+#goes through all x and y computer pixels and calculates frequncy of each color
+#returns dictionary
 def calculateHexCodes(app, pilImage):
     d = {}
     for x in range(pilImage.width):

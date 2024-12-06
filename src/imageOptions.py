@@ -13,6 +13,7 @@ class ImageOptions:
         self.imageCenterX = self.boxLeftEdge + self.boxWidth/2
         self.imageCenterY = self.boxTopEdge + self.boxHeight/2
 
+    #changes images on imageOptions screen so they fit in teh boxes
     def adjustImageSize(self):
         originalWidth, originalHeight = getImageSize(self.image)
         width, height = 0, 0
@@ -30,16 +31,19 @@ class ImageOptions:
 
     def isSelected(self, mouseX, mouseY):
         return (self.boxLeftEdge <= mouseX <= self.boxLeftEdge + self.boxWidth
-                and self.boxTopEdge <= mouseY <= self.boxTopEdge + self.boxHeight)
+                and self.boxTopEdge <= mouseY <= self.boxTopEdge + 
+                self.boxHeight)
 
     def draw(self):
-        drawRect(self.boxLeftEdge, self.boxTopEdge, self.boxWidth, self.boxHeight, 
-                 fill = 'white')
-        drawImage(self.image, self.imageCenterX - self.width/2, self.imageCenterY 
-                  - self.height/2, width = self.width, height = self.height)
-        drawRect(self.boxLeftEdge, self.boxTopEdge, self.boxWidth, self.boxHeight, 
-                 fill = None, border = 'black')
+        drawRect(self.boxLeftEdge, self.boxTopEdge, self.boxWidth, 
+                 self.boxHeight,fill = 'white')
+        drawImage(self.image, self.imageCenterX - self.width/2, 
+                  self.imageCenterY - self.height/2, width = self.width, 
+                  height = self.height)
+        drawRect(self.boxLeftEdge, self.boxTopEdge, self.boxWidth, 
+                 self.boxHeight, fill = None, border = 'black')
         
+    #if user is hooveirng over image
     def drawHighlight(self):
         whiteSpace = 25
         boxWidth = self.boxWidth + whiteSpace
@@ -47,9 +51,11 @@ class ImageOptions:
         drawImage('imageHighlight.png', self.boxLeftEdge - whiteSpace/2, 
                   self.boxTopEdge - whiteSpace/2, width = boxWidth, 
                   height = boxHeight)
-        drawImage(self.image, self.imageCenterX - self.width/2, self.imageCenterY 
-                  - self.height/2, width = self.width, height = self.height)
-        
+        drawImage(self.image, self.imageCenterX - self.width/2, 
+                  self.imageCenterY - self.height/2, width = self.width, 
+                  height = self.height)
+    
+    #if user has clicked on image
     def drawSelected(self):
         whiteSpace = 25
         boxWidth = self.boxWidth + whiteSpace
@@ -57,6 +63,7 @@ class ImageOptions:
         drawImage('imageSelected.png', self.boxLeftEdge - whiteSpace/2, 
                   self.boxTopEdge - whiteSpace/2, width = boxWidth, 
                   height = boxHeight)
-        drawImage(self.image, self.imageCenterX - self.width/2, self.imageCenterY 
-                  - self.height/2, width = self.width, height = self.height)
+        drawImage(self.image, self.imageCenterX - self.width/2, 
+                  self.imageCenterY - self.height/2, width = self.width, 
+                  height = self.height)
     

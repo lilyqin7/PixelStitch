@@ -11,13 +11,17 @@ class Button:
         self.fontSize = fontSize
         self.font = font
 
+    #returns if mouse in bounds
     def isSelected(self, mouseX, mouseY):
         return (self.leftEdge <= mouseX <= self.leftEdge + self.width and 
             self.topEdge <= mouseY <= self.topEdge + self.height)
     
+    #ui, animates if mouse is hoovering over
     def drawHighlight(self):
-        drawImage('buttonHighlight.png', self.leftEdge, self.topEdge, width = self.width, height = self.height)
+        drawImage('buttonHighlight.png', self.leftEdge, self.topEdge, width = 
+                  self.width, height = self.height)
             
+    #normal standard default button
     def drawButton(self):
         #image from https://stock.adobe.com/search?k=%22pink+button%22&asset_id=537039436
         drawImage('pinkButton.png', self.leftEdge, self.topEdge, width = 

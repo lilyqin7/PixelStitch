@@ -1,5 +1,6 @@
 from squareFunctions import findSquare
 
+#takes the point mouse is pressed (row, col) and finds the 'start' of the 'bound'
 def isBounded(app, row, col, board):
     if board[row][col] != None:
         return False
@@ -7,7 +8,6 @@ def isBounded(app, row, col, board):
         for startRow in range(row, len(board)):
             for startCol in range(col, len(board[0])):
                 if (startRow, startCol) != (row, col):
-                    # color = board[startRow][startCol]
                     solution =  isBoundedHelper(app, startRow, startCol, [], 
                                                 None, None, board)
                     if solution:
@@ -15,6 +15,7 @@ def isBounded(app, row, col, board):
         return False
 
 #help from TA at OH 
+#returns a list of indicies that are the bounds
 def isBoundedHelper(app, startRow, startCol, visited, drowN, dcolN, board):
     if board[startRow][startCol] == None:
         return False 
@@ -23,6 +24,7 @@ def isBoundedHelper(app, startRow, startCol, visited, drowN, dcolN, board):
     else:
         if len(visited) == 0: 
             visited.append((startRow, startCol))
+        #diagonals too!
         directions = [(0, -1), (1, -1), (1, 0), (1, 1), (0, 1), (-1, 1), 
                       (-1, 0), (-1, -1)]
         for drow, dcol in directions:
@@ -38,10 +40,12 @@ def isBoundedHelper(app, startRow, startCol, visited, drowN, dcolN, board):
                 visited.pop()
         return False  
 
+#returns if next square is in the board
 def isLegalMove(app, startRow, startCol, drow, dcol, board):
     return (0 <= startRow + drow < len(board) and 0 <= startCol + dcol < 
             len(board[0]))
 
+#returns the MOST outer bounds in all directions
 def findMinMaxFillBoundaries(app, boundaries):
     maxRow, maxCol = 0, 0
     if boundaries != False:
@@ -58,9 +62,12 @@ def findMinMaxFillBoundaries(app, boundaries):
                 minCol = coordinate[1]
         return minRow, minCol, maxRow, maxCol
 
+#goes through each square, determines if the square is "bounded" by identifying
+#bounds in that row
 def inBounds(app, selectedRow, selectedCol):
     #holds column indicies
     currentRow = set()
+    #searches through bounded indicies, adds the column index of same row to set
     for coordinate in app.boundaries:
         if coordinate[0] == selectedRow:
             currentRow.add(coordinate[1])
@@ -74,6 +81,7 @@ def inBounds(app, selectedRow, selectedCol):
         return False
     return True
 
+#returns squares inside bounds (to be filled)
 def findBoundedSquaresHelper(app, pressedRow, pressedCol, boundedSquares, board):
     app.boundaries = isBounded(app, pressedRow, pressedCol, board)
     if app.boundaries:
@@ -85,11 +93,13 @@ def findBoundedSquaresHelper(app, pressedRow, pressedCol, boundedSquares, board)
                     boundedSquares.add((row, col))
     return boundedSquares
 
+#returns squares inside bounds (to be filled)
 def findBoundedSquares(app, mouseX, mouseY, board, boardLeft, boardTop):
     pressedRow, pressedCol = findSquare(app, mouseX, mouseY, board, boardLeft, 
                                         boardTop)
     return findBoundedSquaresHelper(app, pressedRow, pressedCol, set(), board)
 
+#changes the identified squares in the board, returns board
 def fillShape(app, fillColor, mouseX, mouseY, board, boardLeft, boardTop):
     squares = findBoundedSquares(app, mouseX, mouseY, board, boardLeft, boardTop)
     for square in squares:
