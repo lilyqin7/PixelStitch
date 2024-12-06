@@ -27,6 +27,7 @@ class ColorSelection:
         self.colorSelect = None
         self.selectedFromColorWheel = False
         self.selectedColorFromWheel = (0, 0, 0)
+        self.selectedFromGrid = False
 
         #dragging state
         self.startDragging = False
@@ -70,13 +71,13 @@ class ColorSelection:
             color = rgb(self.selectedColorFromWheel[0], 
                         self.selectedColorFromWheel[1], 
                         self.selectedColorFromWheel[2])
-            print(color)
+            # print(color)
             drawRect(self.rectLeft, self.rectTop, self.rectWidth, 
                      self.rectHeight, fill = gradient('white', color, 'black', 
                      start = 'left'), border = 'black')
         #if mouse is hoovering over circle or grid
         elif self.colorSelect != None:
-            print(self.colorSelect)
+            # print(self.colorSelect)
             drawRect(self.rectLeft, self.rectTop, self.rectWidth, 
                      self.rectHeight, fill = gradient('white', self.colorSelect,
                                                       'black', start = 'left'), 
@@ -116,6 +117,12 @@ class ColorSelection:
         return (self.rectLeft <= mouseX <= self.rectLeft + self.rectWidth and 
                 self.rectTop <= mouseY <= self.rectTop + self.rectHeight)
     
+    def gridSelected(self, mouseX, mouseY):
+        width, height = 20, 20
+        startX = self.leftEdge + self.whiteSpace
+        startY = self.topEdge + self.height - self.whiteSpace - 40
+        return (startX <= mouseX <= startX + width*10 and startY <= mouseY <= startY + height*10)
+
     def colorGridSelected(self, mouseX, mouseY):
         row, col = -1, -1
         width, height = 20, 20

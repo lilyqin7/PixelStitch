@@ -7,16 +7,14 @@ library of images or start with a blank canvas to create your own designs. The
 program allows for customization of pixelation size, colors, and overall layout, 
 making it a versatile tool for creating personalized crochet patterns.
 
-
-
 Run Instructions:
     Run main.py!
 
     import cmu_graphics, Image from PIL, random, os, time, webbrowser
 
     drawGrid, hexCodeFunctions, squareFunctions, floodFill, buttons, slider, 
-    imageIcons, colorWheel, and imageOptions contain important functions and 
-    classes necessary for the program to run: please have these files in the 
+    imageIcons, colorWheel, speech, and imageOptions contain important functions 
+    and classes necessary for the program to run: please have these files in the 
     same folder as main.py! (This also goes for cmu_graphics)
 
     to install PIL, type the follwing into a new Python file and run:
@@ -26,9 +24,10 @@ Run Instructions:
 
     open Command Promt and copy in output
 
-    all images are linked at the top of main.py and here: 
-    https://drive.google.com/file/d/1jT-9pziOpiJH7XHoS11JsRwiN8srBptv/view?usp=sharing
+    all image files are linked in full-submission.txt and here: 
+    https://drive.google.com/file/d/17dOcwpKakfRUy7UWX38UtOujxa9dMTBI/view?usp=sharing
 
 
 Shortcuts:
-    Keep clicking the button in the lower right hand corner!
+    Keep clicking the button in the lower right hand corner to get to the result
+    screen!

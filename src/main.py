@@ -1,13 +1,5 @@
-#all backgrounds and images used in backgrounds:
-#https://www.canva.com/design/DAGYShQAujk/OxH7z5xjpadCdniyeZAEgg/edit?utm_content=DAGYShQAujk&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton
-
-#link to all image files: https://drive.google.com/file/d/1jT-9pziOpiJH7XHoS11JsRwiN8srBptv/view?usp=sharing
-
-#image citations in 'image' folder: https://docs.google.com/document/d/1fT-UJPKzTpPlPjaDBd1HXdmDL1TBXOJUnp3GDQunrz8/edit?usp=sharing
-
 from cmu_graphics import *
 from PIL import Image
-# import copy
 import random
 import os
 import time
@@ -21,6 +13,7 @@ from slider import Slider, Handle
 from imageIcons import Icon
 from colorWheel import ColorSelection
 from imageOptions import ImageOptions
+from speech import SpeechBubble
 
 ####INITIALIZING VARIABLES####
 def loadFont(app):
@@ -227,8 +220,17 @@ def toolIcons(app):
     circleTopEdge = app.height/2 + height*3 + offset*3
     app.circleIcon = Icon('circle', leftEdge, circleTopEdge, width, height)
 
+#all the speech bubbles for cats
 def speechVariables(app):
     app.speech = False
+    app.welcomeBubble = SpeechBubble("wow you're so cool!", 10, 250, 150, 90, 
+                                     None)
+    app.instructionsBubble = SpeechBubble("let's learn!", 130, 270, 150, 90, 
+                                          'reverse')
+    app.resultsBubble = SpeechBubble('you did it!!', 620, 160, 150, 90, None)
+    app.chooseDIY = SpeechBubble('wow I love yarn', 460, 120, 150, 90, None)
+    app.chooseImage = SpeechBubble('off to the yarn store!', 230, 180, 120, 70,
+                                   'reverse')
 
 def onAppStart(app):
     app.setMaxShapeCount(3000)
@@ -274,9 +276,12 @@ def changeImageDimensions(app):
 def updateColor(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, 
                 pixelsTall):
     if (not app.drawingRect and not app.drawingOval and not app.drawingLine and 
-        not app.filling and not app.diyColorSelectionPanel.isDragging):
-        if isSquare(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, pixelsTall):
-            row, col = findSquare(app, mouseX, mouseY, board, boardLeft, boardTop)
+        not app.filling and not app.diyColorSelectionPanel.isDragging and not 
+        app.selectColorDropper):
+        if isSquare(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide,
+                     pixelsTall):
+            row, col = findSquare(app, mouseX, mouseY, board, boardLeft, 
+                                  boardTop)
             board[row][col] = app.diyColorSelect
     else:
         #if cirlce or rectangle or line tool used and drawn with
@@ -634,12 +639,6 @@ def checkAspectRatio(app, mouseX, mouseY):
                                         (app.imageHeightSliderHandle.cy - 
                                          heightSliderTop)) + widthSliderTop
     
-    # app.imageWidthSliderHandle.cy = max(min(app.imageWidthSliderHandle.cy, widthSliderBottom), widthSliderTop)
-    # app.imageHeightSliderHandle.cy = max(min(app.imageHeightSliderHandle.cy, heightSliderBottom), heightSliderTop)
-
-    # print(app.imageWidthSliderHandle.cy, app.imageHeightSliderHandle.cy)
-
-    # app.imageHeightSliderHandle.cy = (((app.imageWidthSliderHandle.cy - widthSliderTop) / widthToHeightRatio) + heightSliderTop)
     if app.imageHeightSliderHandle.cy > heightSliderBottom:
         app.imageHeightSliderHandle.cy = heightSliderBottom
         app.imageWidthSliderHandle.cy = (((app.imageHeightSliderHandle.cy - 
@@ -658,64 +657,7 @@ def checkAspectRatio(app, mouseX, mouseY):
     elif app.imageWidthSliderHandle.cy < widthSliderTop:
         app.imageWidthSliderHandle.cy = widthSliderTop
         app.imageHeightSliderHandle.cy = (((app.imageWidthSliderHandle.cy - 
-                                            heightSliderTop) / widthToHeightRatio)
-                                              + widthSliderTop)
-    #keeps width slider in bounds
-    # if app.imageWidthSliderHandle.cy > widthSliderBottom:
-    #     print('1')
-    #     app.imageWidthSliderHandle.cy = widthSliderBottom
-    #     app.imageHeightSliderHandle.cy = (((app.imageWidthSliderHandle.cy - 
-    #                                        widthSliderTop)/widthToHeightRatio) 
-    #                                        + heightSliderTop)
-    #     print(app.imageWidthSliderHandle.cy, app.imageHeightSliderHandle.cy)
-    # elif app.imageWidthSliderHandle.cy < widthSliderTop:
-    #     print('2')
-    #     app.imageWidthSliderHandle.cy = widthSliderTop
-    #     app.imageHeightSliderHandle.cy = (((app.imageWidthSliderHandle.cy - 
-    #                                         widthSliderTop)/widthToHeightRatio) 
-    #                                         + heightSliderTop)
-
-    # #keeps height slider in bounds
-    # elif app.imageHeightSliderHandle.cy > heightSliderBottom:
-    #     print('3')
-    #     app.imageHeightSliderHandle.cy = heightSliderBottom
-    #     app.imageWidthSliderHandle.cy = (((app.imageHeightSliderHandle.cy - 
-    #                                        heightSliderTop)*widthToHeightRatio) 
-    #                                        + widthSliderTop)
-    # elif app.imageHeightSliderHandle.cy < heightSliderTop:
-    #     print('4')
-    #     app.imageHeightSliderHandle.cy = heightSliderTop
-    #     app.imageWidthSliderHandle.cy = (((app.imageHeightSliderHandle.cy - 
-    #                                        heightSliderTop)*widthToHeightRatio) 
-    #                                        + widthSliderTop)
-        
-    # print(app.imageWidthSliderHandle.cy, app.imageHeightSliderHandle.cy, (app.imageWidthSliderHandle.cy - 75)/(app.imageHeightSliderHandle.cy - 275))
-
-def checkLine(app, board, boardLeft, boardTop, pixelsWide, pixelsTall):
-    xStart, yStart = app.lineToolStart
-    xEnd, yEnd = app.lineToolEnd
-    for row, col in list(app.boardSelected):
-        #horizontal line
-        if xStart == xEnd:
-            if row != xStart:
-                app.boardSelected.remove((row, col))
-        #vertical line
-        elif yStart == yEnd:
-            if col != yStart:
-                app.boardSelected.remove((row, col))
-        # else:
-        #     slope = (yEnd - yStart)/(xEnd - xStart)
-        #     intercept = yStart - slope*xStart
-        #     #y = mx + b
-        #     squareX = boardLeft + col * pixelsWide + pixelsWide // 2
-        #     squareY = boardTop + row * pixelsTall + pixelsTall // 2
-
-        #     # Check if the square's center is close to the line y = mx + c
-        #     predictedY = slope * squareX + intercept
-        #     if abs(predictedY - squareY) > 1e-2:  # Threshold for line proximity
-        #         app.boardSelected.remove((row, col))            
-            
-
+                                            heightSliderTop) / widthToHeightRatio))
 
 ####DIY SCREEN####
 def diy_onMouseMove(app, mouseX, mouseY):
@@ -777,7 +719,7 @@ def diy_onMousePress(app, mouseX, mouseY):
     checkIconEditing(app)
     checkIconTools(app)
 
-    #if user is hoovering over a color, app.diyColorSelect will hold last clicked color
+    #if user is hoovering over a color, app.diyColorSelect hold last clicked color
     if app.colorSelect != None:
         app.diyColorSelect = app.colorSelect
    
@@ -880,8 +822,10 @@ def image_onMousePress(app, mouseX, mouseY):
         image_change(app)
     
     #starts filling in squares
-    if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
-                app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
+    if (isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
+                app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall) and 
+                not app.drawingRect and not app.drawingLine and not 
+                app.drawingOval and not app.selectColorDropper):
         row, col = findSquare(app, mouseX, mouseY, app.imageBoard, 
                               app.imageBoardLeft, app.imageBoardTop)
         app.imageBoard[row][col] = app.imageColorSelect
@@ -913,32 +857,11 @@ def image_onMouseDrag(app, mouseX, mouseY):
                            app.imageBoardLeft, app.imageBoardTop, 
                            app.imagePixelsWide, app.imagePixelsTall)
 
-    # oldWidth, oldHeight = app.imageWidthSliderHandle.cy, app.imageHeightSliderHandle.cy
-    # if app.preserveAspectRatio:
-    #     widthToHeightRatio = app.originalImageWidth/app.originalImageHeight
-    #     #if user just checked aspect ratio box and hasn't adjusted controls
-    #     app.imageWidthSlider = widthToHeightRatio * app.imageHeightSlider * 3/2
-    #     if 130 <= mouseY <= 160 and 25 <= mouseX <= 175:
-    #         app.imageWidthSlider = mouseX
-    #         app.imageHeightSlider = app.imageWidthSlider / widthToHeightRatio * 2/3
-    #     elif 210 <= mouseY <= 240 and 25 <= mouseX <= 175:
-    #         app.imageHeightSlider = mouseX
-    #         app.imageWidthSlider = app.imageHeightSlider * widthToHeightRatio * 3/2
-    # else:
-    #     #changes width
-    #     if 130 <= mouseY <= 160 and abs(mouseX - app.imageWidthSlider) <= 15:
-    #         app.imageWidthSlider = max(25, min(mouseX, 175))   
-    #     #changes height
-    #     elif 210 <= mouseY <= 240 and abs(mouseX - app.imageHeightSlider) <= 15:
-    #         app.imageHeightSlider = max(25, min(mouseX, 175))
-    #         #change labels and pixelization image
-    # if oldWidth != app.imageWidthSlider or oldHeight != app.imageHeightSlider:
-    #     image_change(app)
-
     #drag color on grid
     if (isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
                 app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall) 
-                and not app.drawingRect and not app.drawingOval):
+                and not app.drawingRect and not app.drawingOval and not 
+                app.drawingLine and not app.selectColorDropper):
         row, col = findSquare(app, mouseX, mouseY, app.imageBoard, 
                               app.imageBoardLeft, app.imageBoardTop)
         app.imageBoard[row][col] = app.imageColorSelect
@@ -1001,7 +924,7 @@ def image_redrawAll(app):
     if app.preserveAspectRatio:
         top = 30
         height, width = 20, 20
-        #image from Canva, linked at top of main.py
+        #image from Canva, linked in full-submission.txt
         drawImage('checkmark.png', app.sliderCenter - 10, top, width = width, 
                   height = height)
     else:
@@ -1034,10 +957,10 @@ def imageOptions_onMousePress(app, mouseX, mouseY):
         if image.isSelected(mouseX, mouseY):
             app.imageSelected = True
             app.selectedImage = image.name
-        
+
 def imageOptions_redrawAll(app):
     #background
-    #image designed by me on Canva w/ existing graphics, link at top of main.py
+    #image designed by me on Canva w/ existing graphics, link full-submission.txt
     drawImage('imageOptionsBackground.png', 0, 0)
     #draw images
     imagesAcross = 3
@@ -1097,17 +1020,26 @@ def updateSelectedImage(app):
 def result_onMouseMove(app, mouseX, mouseY):
     app.currentScreen = 'result'
     updateMouse(app, mouseX, mouseY)
+    #for cat speech bubble
+    catHeadLeft = 650
+    catHeadTop = 290
+    catHeadWidth = 130
+    catHeadHeight = 90
+    if (catHeadLeft <= mouseX <= catHeadLeft + catHeadWidth and catHeadTop <= 
+        mouseY <= catHeadTop + catHeadHeight):
+        app.speech = True
+    else:
+        app.speech = False
 
 def result_onMousePress(app, mouseX, mouseY):
     if app.backButton.isSelected(mouseX, mouseY):
         setActiveScreen(app.prevScreen)
         app.prevScreen = 'result'
-    
-    if app.videoButton.isSelected(mouseX, mouseY):
-        openLink()
+    elif app.videoButton.isSelected(mouseX, mouseY):
+        openLink()    
 
 def result_redrawAll(app):
-    #image designed by me on Canva w/ existing graphics, link at top of main.py
+    #image designed on Canva w/ existing graphics, link in full-submission.txt
     drawImage('resultBackground.png', 0, 0)
     app.backButton.drawButton()
     #in top left
@@ -1136,10 +1068,31 @@ def result_redrawAll(app):
     elif app.prevScreen == 'diy':
         drawGrid(app, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, 400)
 
+    #speech bubble
+    if app.speech:
+        app.resultsBubble.draw()
+
 ####START SCREEN####
 def start_onMouseMove(app, mouseX, mouseY):
     app.currentScreen = 'start'
     updateMouse(app, mouseX, mouseY)
+    #for cat speech bubble
+    catHeadLeft = 155
+    catHeadTop = 250
+    catHeadWidth = 60
+    catHeadHeight = 50
+    catHeadLeft2 = 590
+    catHeadTop2 = 190
+    catHeadWidth2 = 60
+    catHeadHeight2 = 60
+    if (catHeadLeft <= mouseX <= catHeadLeft + catHeadWidth and catHeadTop <= 
+        mouseY <= catHeadTop + catHeadHeight):
+        app.speech = True
+    elif (catHeadLeft2 <= mouseX <= catHeadLeft2 + catHeadWidth2 and catHeadTop2
+          <= mouseY <= catHeadTop2 +  catHeadHeight2):
+        app.speech = True
+    else:
+        app.speech = False
 
 def start_onMousePress(app, mouseX, mouseY):
     if app.diyButton.isSelected(mouseX, mouseY):
@@ -1153,7 +1106,7 @@ def start_onMousePress(app, mouseX, mouseY):
         app.prevScreen = 'start'
 
 def start_redrawAll(app):
-    #image designed by me on Canva w/ existing graphics, link at top of main.py
+    #image designed on Canva w/ existing graphics, link full-submission.txt
     drawImage('startBackground.png', 0, 0)
     app.diyButton.drawButton()
     app.imageButton.drawButton()
@@ -1167,10 +1120,27 @@ def start_redrawAll(app):
     elif app.backButton.isSelected(app.mouseX, app.mouseY):
         app.backButton.drawHighlight()
 
+    #speech bubbles for cats
+    if app.speech:
+        if app.mouseX < app.width/2:
+            app.chooseImage.draw()
+        else:
+            app.chooseDIY.draw()
+
 ####INSTRUCTIONS SCREEN####
 def instructions_onMouseMove(app, mouseX, mouseY):
     app.currentScreen = 'instructions'
     updateMouse(app, mouseX, mouseY)
+    #for silly little cat speech bubble
+    catHeadLeft = 35
+    catHeadTop = 300
+    catHeadWidth = 90
+    catHeadHeight = 60
+    if (catHeadLeft <= mouseX <= catHeadLeft + catHeadWidth and catHeadTop <= 
+        mouseY <= catHeadTop + catHeadHeight):
+        app.speech = True
+    else:
+        app.speech = False
 
 def instructions_onMousePress(app, mouseX, mouseY):
     if app.backButton.isSelected(mouseX, mouseY):
@@ -1180,7 +1150,7 @@ def instructions_onMousePress(app, mouseX, mouseY):
         openLink()
 
 def instructions_redrawAll(app):
-    #image designed by me on Canva w/ existing graphics, link at top of main.py
+    #image designed on Canva w/ existing graphics, link full-submission.txt
     drawImage('instructionsBackground.png', 0, 0)
     app.instructionsVideoButton.drawButton()
     app.backButton.drawButton()
@@ -1190,6 +1160,10 @@ def instructions_redrawAll(app):
         app.backButton.drawHighlight()
     elif app.instructionsVideoButton.isSelected(app.mouseX, app.mouseY):
         app.instructionsVideoButton.drawHighlight()
+
+    #speech bubble
+    if app.speech:
+        app.instructionsBubble.draw()
 
 ####WELCOME SCREEN####
 def welcome_onMouseMove(app, mouseX, mouseY):
@@ -1215,30 +1189,18 @@ def welcome_onMousePress(app, mouseX, mouseY):
         setActiveScreen('start')
         app.prevScreen = 'welcome'
 
-    print(mouseX, mouseY)
-
 def welcome_redrawAll(app):
-    #image designed by me on Canva w/ existing graphics, link at top of main.py
+    #image designed on Canva w/ existing graphics, link full-submission.txt
     drawImage('welcomeBackground.png', 0, 0)
     app.instructionsButton.drawButton()
     app.startButton.drawButton()
-
     if app.instructionsButton.isSelected(app.mouseX, app.mouseY):
         app.instructionsButton.drawHighlight()
     elif app.startButton.isSelected(app.mouseX, app.mouseY):
         app.startButton.drawHighlight()
-
+    #speech bubble!
     if app.speech:
-        bubbleLeft = 10
-        bubbleTop = 250
-        bubbleWidth = 150
-        bubbleHeight = 90
-        bubbleCenterX = (bubbleLeft*2 + bubbleWidth)/2
-        bubbleCenterY = (bubbleTop*2 + bubbleHeight)/2
-        drawImage('speechBubble.png', bubbleLeft, bubbleTop, width = 
-                  bubbleWidth, height = bubbleHeight)
-        drawLabel("Wow you're so cool!", bubbleCenterX, bubbleCenterY, 
-                  font = app.font)
+        app.welcomeBubble.draw()
 
 ####MAIN####
 def main():

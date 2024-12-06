@@ -1,38 +1,27 @@
+#assistance from chatGPT to make function more efficient using zip() and all()
+def isTooSimilar(color, existing, threshold):
+        return all(abs(c1 - c2) < threshold for c1, c2 in zip(color, existing))
+
 def calculateMostFrequentHex(app):
     frequent = []
     hexFrequency = app.hexCodeToFrequency.copy()
     #app.mostFrequentHex can hold UP TO 10 values
-    #if there aren't 10 vastly unique colors, loop will still terminate
-    while len(frequent) < 10 and len(hexFrequency) > 0:
-        num = 0
-        code = None
-        #searches through app.hexCodeToFrequency for most frequent hex code
-        for val in hexFrequency:
-            if hexFrequency[val] > num:
-                num = hexFrequency[val]
-                code = val
-        #adds new value frequent, removes from old dictionary
-        frequent.append(code)
-        hexFrequency.pop(code)
-        #search through app.mostFrequentHex and pop too similar colors
-        j = 0
-        while j < len(frequent):
-            rgbVal = frequent[j]
-            r = rgbVal[0]
-            g = rgbVal[1]
-            b = rgbVal[2]
-            k = j + 1
-            while k < len(frequent):
-                nextVal = frequent[k]
-        #if all rgb differences are less than threshold, colors are too similar
-                threshold = 50
-                if (abs(nextVal[0] - r) < threshold and abs(nextVal[1] - g) < 
-                    threshold and abs(nextVal[2] - b) < threshold):
-                    frequent.pop()
-                k += 1
-            j += 1
+    #assistance from 
+    #https://www.freecodecamp.org/news/sort-dictionary-by-value-in-python/
+    sortedColors = sorted(hexFrequency.items(), key=lambda item: item[1], 
+                          reverse=True)
+    frequent = []
+    for color, frequency in sortedColors:
+        #if there are already existing similar colors
+        if all(not isTooSimilar(color, existing, 50) for existing in frequent):
+            frequent.append(color)
+            hexFrequency.pop(color)
+        #if there are 10 or less
+        if len(frequent) >= 10 or len(hexFrequency) == 0:
+            break
+
     return frequent
-   
+    
 #goes through all x and y computer pixels and calculates frequncy of each color
 #returns dictionary
 def calculateHexCodes(app, pilImage):
