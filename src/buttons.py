@@ -18,6 +18,7 @@ class Button:
     
     #ui, animates if mouse is hoovering over
     def drawHighlight(self):
+        #image from me
         drawImage('buttonHighlight.png', self.leftEdge, self.topEdge, width = 
                   self.width, height = self.height)
             

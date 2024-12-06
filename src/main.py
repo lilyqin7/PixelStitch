@@ -227,6 +227,9 @@ def toolIcons(app):
     circleTopEdge = app.height/2 + height*3 + offset*3
     app.circleIcon = Icon('circle', leftEdge, circleTopEdge, width, height)
 
+def speechVariables(app):
+    app.speech = False
+
 def onAppStart(app):
     app.setMaxShapeCount(3000)
     loadFont(app)
@@ -239,6 +242,7 @@ def onAppStart(app):
     sliders(app)
     toolIcons(app)
     imageOptions(app)
+    speechVariables(app)
 
 #opens video in exterman browser to video on how to do c2c
 def openLink():
@@ -297,6 +301,7 @@ def image_change(app):
     #update board with appropriate colored squares
     updateImageBoard(app, pilImage)
 
+#change board and board variables
 def diy_change(app):
     app.diyBoard = resizingBoard(app, app.diyBoard, app.diyPixelsWide, 
                                  app.diyPixelsTall)
@@ -317,6 +322,7 @@ def resizingBoard(app, board, pixelsWide, pixelsTall):
 def updateMouse(app, mouseX, mouseY):
     app.mouseX, app.mouseY = mouseX, mouseY
 
+#if color dropper tool is selected, return color of square hoovering over
 def findColorDropperColor(app, mouseX, mouseY, board, boardLeft, boardTop, 
                           pixelsWide, pixelsTall):
     #checks if mouse is hovering over a square
@@ -326,6 +332,7 @@ def findColorDropperColor(app, mouseX, mouseY, board, boardLeft, boardTop,
             row, col = findSquare(app, mouseX, mouseY, board, boardLeft, boardTop)
             app.colorDropperColor = board[row][col]
 
+#draw left toolbar
 def drawIconTools(app, mouseX, mouseY):
     if app.selectColorDropper:
         app.colorDropperIcon.drawMovingIcon(mouseX, mouseY)
@@ -359,11 +366,11 @@ def checkDoubleClick(app, mouseX, mouseY, board, boardLeft, boardTop,
         app.lastClickTime = currentTime
         app.clickPosition = (mouseX, mouseY)
 
+#adds selected squares to app.boardSelected
 def lineTool(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, 
              pixelsTall):
     app.lineToolEnd = mouseX, mouseY
     xStart, yStart = app.lineToolStart
-
     #if vertical line
     if mouseX == xStart:
         for y in range(min(yStart, mouseY), max(yStart, mouseY), 10):
@@ -394,6 +401,7 @@ def lineTool(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide,
                     row, col = findSquare(app, x, y, board, boardLeft, boardTop)
                     app.boardSelected.add((row, col))
 
+#adds selected squares to app.boardSelected
 def rectTool(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, 
              pixelsTall):
         app.rectToolEnd = mouseX, mouseY
@@ -405,6 +413,7 @@ def rectTool(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide,
                     row, col = findSquare(app, x, y, board, boardLeft, boardTop)
                     app.boardSelected.add((row, col))
 
+#adds selected squares to app.boardSelected
 def ovalTool(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide, 
              pixelsTall):
     app.ovalToolEnd = mouseX, mouseY
@@ -422,6 +431,7 @@ def ovalTool(app, mouseX, mouseY, board, boardLeft, boardTop, pixelsWide,
                     row, col = findSquare(app, x, y, board, boardLeft, boardTop)
                     app.boardSelected.add((row, col))
 
+#during drag, updates endpoints to shape moves with it
 def checkDrawingShapesDrag(app, mouseX, mouseY, board, boardLeft, boardTop,
                            pixelsWide, pixelsTall):
     if app.drawingLine:
@@ -434,53 +444,49 @@ def checkDrawingShapesDrag(app, mouseX, mouseY, board, boardLeft, boardTop,
         ovalTool(app, mouseX, mouseY, board, boardLeft, boardTop,
                            pixelsWide, pixelsTall)
 
+#during press, right before drawing begins
 def checkDrawingShapesPress(app, mouseX, mouseY):
     if app.drawingLine:
         app.lineToolStart = mouseX, mouseY
         app.lineToolEnd = mouseX + 1, mouseY + 1
-
     elif app.drawingRect:
         app.rectToolStart = mouseX, mouseY
         app.rectToolEnd = mouseX + 1, mouseY + 1
-
     elif app.drawingOval:
         app.ovalToolStart = mouseX, mouseY
         app.ovalToolEnd = mouseX + 1, mouseY + 1
 
+#on mouse release, sets endpoint
 def checkDrawingShapesRelease(app, mouseX, mouseY):
     if app.drawingLine:
         app.lineToolEnd = mouseX, mouseY
         app.drawingLine = False
-
     elif app.drawingRect:
         app.rectToolEnd = mouseX, mouseY
         app.drawingRect = False
         app.drawShape = True
-
     elif app.drawingOval:
         app.ovalToolEnd = mouseX, mouseY
         app.drawingOval = False
         app.drawShape = True
 
+#draw shapes, endopints move as drawing because of drag
 def checkDrawingShapesDraw(app):
     if app.drawingLine:
         startX, startY = app.lineToolStart
         endX, endY = app.lineToolEnd
         drawLine(startX, startY, endX, endY)
-
     elif app.drawingRect:
         startX, startY = app.rectToolStart
         endX, endY = app.rectToolEnd
         drawRect(startX, startY, endX - startX, endY - startY, fill = None, 
                  border = 'black')
-
     elif app.drawingOval:
         x0, y0 = app.ovalToolStart
         x1, y1 = app.ovalToolEnd
         centerX, centerY = (x0 + x1)//2, (y0 + y1)//2
         drawOval(centerX, centerY, x1 - x0, y1 - y0, fill = None, 
                  border = 'black')
-
 
 def drawSliders(app):
     #box showing squares wide/tall
@@ -490,7 +496,6 @@ def drawSliders(app):
              border = 'black', align = 'center')
     drawLine(app.sliderCenter - width/2, app.height/2, app.sliderCenter + 
              width/2, app.height/2)
-    
     app.widthSlider.draw()
     app.heightSlider.draw()
     if app.currentScreen == 'diy':
@@ -547,26 +552,14 @@ def checkIconTools(app):
         app.selectColorDropper = not app.selectColorDropper
     elif app.eraserIcon.isSelected(app.mouseX, app.mouseY):
         app.eraser = not app.eraser
-        # if app.eraser:
-        #     app.imageColorSelect = None
-        #     app.colorSelect = None
     elif app.fillIcon.isSelected(app.mouseX, app.mouseY):
         app.fillSelection = not app.fillSelection
-        # if app.fillSelection:
-        #     app.filling = True
     elif app.lineIcon.isSelected(app.mouseX, app.mouseY):
         app.lineTool = not app.lineTool
-        # if app.dragSelection:
-        #     app.drawingDrag = True
-        #     app.moveShape = False
     elif app.squareIcon.isSelected(app.mouseX, app.mouseY):
         app.rectTool = not app.rectTool
-        # if app.rectTool:
-        #     app.drawingRect = True
     elif app.circleIcon.isSelected(app.mouseX, app.mouseY):
         app.ovalTool = not app.ovalTool
-        # if app.ovalTool:
-        #     app.drawingOval = True
     elif app.eraser:
         if not isSquare(app, app.mouseX, app.mouseY, app.imageBoard, 
                         app.imageBoardLeft, app.imageBoardTop, 
@@ -576,6 +569,7 @@ def checkIconTools(app):
         app.selectColorDropper = app.fillSelection = app.ovalTool = False
         app.rectTool = app.lineTool = False
 
+#if mouse hoovering over, make icon bigger for ui
 def checkIconHighlights(app):
     if app.colorIcon.isSelected(app.mouseX, app.mouseY):
         app.selectColorWheelHighlight = True
@@ -596,6 +590,7 @@ def checkIconHighlights(app):
         app.eraserHighlight = app.fillHighlight = app.lineHighlight = False
         app.rectHighlight = app.ovalHighlight = False
         
+#if mouse has pressed icon, make it move with mouse
 def drawIconHighlights(app):
     if app.selectColorWheelHighlight:
         app.colorIcon.drawSelected()
@@ -612,12 +607,11 @@ def drawIconHighlights(app):
     elif app.ovalHighlight:
         app.circleIcon.drawSelected()
 
+#returns pixels wide and tall
 def changeSliders(app, mouseX, mouseY, handle):
     return handle.updateSquares(mouseX, mouseY)
 
 def checkAspectRatio(app, mouseX, mouseY):
-    #edge cases still need work
-
     widthToHeightRatio = app.originalImageWidth/app.originalImageHeight
     sliderLeft, sliderRight = 760, 795
     widthSliderTop, widthSliderBottom = 75, 225
@@ -743,7 +737,7 @@ def diy_onMouseMove(app, mouseX, mouseY):
         #checks if in gradient grid or in color wheel
         app.colorSelect = app.diyColorSelectionPanel.getColorWheelColor(mouseX, 
                                                                         mouseY)
-
+    #if mouse hoovering over square and color dropper is selected, return color
     if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, 
                 app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
         if app.selectColorDropper == True:
@@ -757,35 +751,11 @@ def diy_onMouseMove(app, mouseX, mouseY):
             app.colorDropperColor = None
 
 def diy_onMouseDrag(app, mouseX, mouseY):
+    #drag color panel
     if app.diyColorSelectionPanel.startDragging:
         app.diyColorSelectionPanel.move(mouseX, mouseY)
     checkDrawingShapesDrag(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, 
                            app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall)
-  
-    # if app.moveShape:
-    #     print('byyy')
-    #     xStart, yStart = app.moveStart
-    #     xOffset = mouseX - xStart
-    #     yOffset = mouseY - yStart
-
-    #     # Update the rectangle's position
-    #     # startX, startY = app.dragStart
-    #     app.dragStart = (xStart + xOffset, yStart + yOffset)
-    #     app.dragEnd = (xStart + xOffset + app.selectionWidth, yStart + yOffset 
-    #                    + app.selectionHeight)
-    #     app.moveStart = mouseX, mouseY
-
-
-    # if app.drawingDrag:
-    #     app.dragEnd = mouseX, mouseY
-    #     xStart, yStart = app.dragStart
-    #     for x in range(xStart, mouseX, 10):
-    #         for y in range(yStart, mouseY, 10):
-    #             if isSquare(app, x, y, app.diyBoard, app.diyBoardLeft, app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
-    #                 row, col = findSquare(app, x, y, app.diyBoard, app.diyBoardLeft, app.diyBoardTop)
-    #                 app.boardSelected.add((row, col))
-    # print(app.boardSelected)       
-
     app.diyBoard = updateColor(app, mouseX, mouseY, app.diyBoard, 
                                app.diyBoardLeft, app.diyBoardTop, 
                                app.diyPixelsWide, app.diyPixelsTall)
@@ -794,13 +764,8 @@ def diy_onMousePress(app, mouseX, mouseY):
     #updates color
     if app.selectColorWheel:
         if app.diyColorSelectionPanel.wheelSelected(mouseX, mouseY):
-            print('hiiiii')
             app.diyColorSelectionPanel.selectedColorFromWheel = app.diyColorSelectionPanel.getPixel(mouseX, mouseY)
-            print('')
             app.diyColorSelectionPanel.selectedFromColorWheel = True
-        # elif app.diyColorSelectionPanel.colorGridSelected(mouseX, mouseY):
-        #     app.diyColorSelectionPanel.selectedColor = app.diyColorSelect
-        #     app.diyColorSelectionPanel.selectedFromColorGrid = True
         #potential start dragging the panel
         elif app.diyColorSelectionPanel.isSelected(mouseX, mouseY):
             app.diyColorSelectionPanel.startMove(mouseX, mouseY)
@@ -832,24 +797,7 @@ def diy_onMousePress(app, mouseX, mouseY):
                      app.diyColorSelect)
     checkDrawingShapesPress(app, mouseX, mouseY)
 
-    # if app.drawingDrag:
-    #     startX, startY = min(app.dragStart[0], app.dragEnd[0]), min(app.dragStart[1], app.dragEnd[1])
-    #     endX, endY = max(app.dragStart[0], app.dragEnd[0]), max(app.dragStart[1], app.dragEnd[1])
-    #     #actually moving the box
-    #     if startX < mouseX < endX and startY < mouseY < endY:
-    #         print('psss')
-    #         app.moveShape = True
-    #         app.moveStart = mouseX, mouseY
-    #         app.selectionWidth = endX - startX
-    #         app.selectionHeight = endY - startY
-    #         app.mouseXtoLeftDif = mouseX - startX
-    #         app.mouseYtoTopDif = mouseY - startY
-    #         app.drawingDrag = False
-    #     #still drawing the selecion
-    #     else: 
-    #         app.dragStart = mouseX, mouseY
-    #         app.dragEnd = mouseX + 1, mouseY + 1
-
+    #if fill tool selected
     if app.filling:
         if isSquare(app, mouseX, mouseY, app.diyBoard, app.diyBoardLeft, 
                     app.diyBoardTop, app.diyPixelsWide, app.diyPixelsTall):
@@ -871,14 +819,6 @@ def diy_onMouseRelease(app, mouseX, mouseY):
 
     checkDrawingShapesRelease(app, mouseX, mouseY)
 
-    # if app.moveShape:
-    #     app.moveStart = mouseX, mouseY
-    #     app.moveShape = False
-    #     app.drawingDrag = False
-
-    # if app.drawingDrag:
-    #     app.dragEnd = mouseX, mouseY
-
     if app.filling: 
         app.filling = False
 
@@ -895,21 +835,6 @@ def diy_redrawAll(app):
 
     checkDrawingShapesDraw(app)
 
-    # if app.drawingDrag:
-    #     startX, startY = app.dragStart
-    #     endX, endY = app.dragEnd
-    #     #if valid square
-    #     if endX - startX > 0 and endY - startY > 0:
-    #         drawRect(startX, startY, endX - startX, endY - startY, fill = None, 
-    #                  border = 'black', dashes = True)
-
-    # if app.moveShape:
-    #     print('dkjdjd')
-    #     drawRect(app.mouseX - app.mouseXtoLeftDif, app.mouseY - 
-    #              app.mouseYtoTopDif, app.selectionWidth, app.selectionHeight, 
-    #              fill = None, border = 'black', dashes = True)
-        
-
     #checks if mouse is hoovering over
     if app.backButton.isSelected(app.mouseX, app.mouseY):
         app.backButton.drawHighlight()
@@ -925,7 +850,6 @@ def image_onMousePress(app, mouseX, mouseY):
 
     if app.selectColorWheel:
         if app.imageColorSelectionPanel.wheelSelected(mouseX, mouseY):
-            print('hiiiii')
             app.imageColorSelectionPanel.selectedColorFromWheel = app.imageColorSelectionPanel.getPixel(mouseX, mouseY)
             app.imageColorSelectionPanel.selectedFromColorWheel = True
         #potential start dragging the panel
@@ -981,13 +905,6 @@ def image_onMousePress(app, mouseX, mouseY):
     if app.colorSelect != None:
         app.imageColorSelect = app.colorSelect
 
-    # if app.filling:
-    #     if isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
-    #                 app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall):
-    #         app.imageBoard = fillShape(app, app.imageColorSelect, mouseX, mouseY, 
-    #                                  app.imageBoard, app.imageBoardLeft, 
-    #                                  app.imageBoardTop)
-
 def image_onMouseDrag(app, mouseX, mouseY):
     if app.imageColorSelectionPanel.startDragging:
         app.imageColorSelectionPanel.move(mouseX, mouseY)
@@ -1018,6 +935,7 @@ def image_onMouseDrag(app, mouseX, mouseY):
     # if oldWidth != app.imageWidthSlider or oldHeight != app.imageHeightSlider:
     #     image_change(app)
 
+    #drag color on grid
     if (isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
                 app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall) 
                 and not app.drawingRect and not app.drawingOval):
@@ -1025,6 +943,7 @@ def image_onMouseDrag(app, mouseX, mouseY):
                               app.imageBoardLeft, app.imageBoardTop)
         app.imageBoard[row][col] = app.imageColorSelect
 
+    #for square in oval, rectangle, line tools
     for square in app.boardSelected:
         row, col = square
         app.imageBoard[row][col] = app.imageColorSelect
@@ -1032,7 +951,6 @@ def image_onMouseDrag(app, mouseX, mouseY):
 def image_onMouseMove(app, mouseX, mouseY):
     app.currentScreen = 'image'
     updateMouse(app, mouseX, mouseY)
-
     checkIconHighlights(app)
     if app.selectColorWheel:
         #checks if in color grid
@@ -1049,9 +967,6 @@ def image_onMouseMove(app, mouseX, mouseY):
                               app.imageBoardLeft, app.imageBoardTop)
         app.doubleClickColor = app.imageBoard[row][col]
 
-    # if app.selectColorWheel:
-    #     checkColorGrid(app, mouseX, mouseY, app.mostFrequentHex)
-
     #checks if mouse is hovering over an image square
     if (isSquare(app, mouseX, mouseY, app.imageBoard, app.imageBoardLeft, 
                  app.imageBoardTop, app.imagePixelsWide, app.imagePixelsTall)):
@@ -1065,11 +980,8 @@ def image_onMouseMove(app, mouseX, mouseY):
         else:
             app.colorDropperColor = None
 
-    # getColorWheelColor(app, mouseX, mouseY)
-
 def image_onMouseRelease(app, mouseX, mouseY):
     app.imageColorSelectionPanel.endMove()
-
     checkDrawingShapesRelease(app, mouseX, mouseY)
 
 def image_redrawAll(app):
@@ -1089,6 +1001,7 @@ def image_redrawAll(app):
     if app.preserveAspectRatio:
         top = 30
         height, width = 20, 20
+        #image from Canva, linked at top of main.py
         drawImage('checkmark.png', app.sliderCenter - 10, top, width = width, 
                   height = height)
     else:
@@ -1116,6 +1029,7 @@ def imageOptions_onMousePress(app, mouseX, mouseY):
         setActiveScreen('start')
         app.prevScreen = 'imageOptions'
 
+    #if user selects image, keeps track of image details in app.selectedImage
     for image in app.selectedImages:
         if image.isSelected(mouseX, mouseY):
             app.imageSelected = True
@@ -1123,11 +1037,14 @@ def imageOptions_onMousePress(app, mouseX, mouseY):
         
 def imageOptions_redrawAll(app):
     #background
+    #image designed by me on Canva w/ existing graphics, link at top of main.py
     drawImage('imageOptionsBackground.png', 0, 0)
     #draw images
     imagesAcross = 3
     imagesDown = 2
     whiteSpace = 50
+    #12 is num of images
+    #add all images to app.selectedImages list
     potentialNums = [num for num in range(1, 12)]
     if len(app.selectedImages) < imagesAcross * imagesDown:
         for i in range(imagesAcross):
@@ -1140,14 +1057,14 @@ def imageOptions_redrawAll(app):
                 #prevents duplicates
                 potentialNums.remove(num)
 
-    #if mouse is hoovering above
+    #if mouse is hoovering above image
     for image in app.selectedImages:
         if image.isSelected(app.mouseX, app.mouseY):
             image.drawHighlight()
         else:
             image.draw()
     
-    #if there is an image selected
+    #if there is an image selected, update 
     if app.imageSelected:
         for image in app.selectedImages:
             if image.name == app.selectedImage:
@@ -1162,6 +1079,7 @@ def imageOptions_redrawAll(app):
     elif app.backButton.isSelected(app.mouseX, app.mouseY):
         app.backButton.drawHighlight()    
 
+#updates necessary variables for image screen
 def updateSelectedImage(app):
     app.pilImage = Image.open(os.path.join('images', f'{app.selectedImage}.png')
                               ).convert('RGB')
@@ -1189,6 +1107,7 @@ def result_onMousePress(app, mouseX, mouseY):
         openLink()
 
 def result_redrawAll(app):
+    #image designed by me on Canva w/ existing graphics, link at top of main.py
     drawImage('resultBackground.png', 0, 0)
     app.backButton.drawButton()
     #in top left
@@ -1234,6 +1153,7 @@ def start_onMousePress(app, mouseX, mouseY):
         app.prevScreen = 'start'
 
 def start_redrawAll(app):
+    #image designed by me on Canva w/ existing graphics, link at top of main.py
     drawImage('startBackground.png', 0, 0)
     app.diyButton.drawButton()
     app.imageButton.drawButton()
@@ -1260,6 +1180,7 @@ def instructions_onMousePress(app, mouseX, mouseY):
         openLink()
 
 def instructions_redrawAll(app):
+    #image designed by me on Canva w/ existing graphics, link at top of main.py
     drawImage('instructionsBackground.png', 0, 0)
     app.instructionsVideoButton.drawButton()
     app.backButton.drawButton()
@@ -1275,6 +1196,17 @@ def welcome_onMouseMove(app, mouseX, mouseY):
     app.currentScreen = 'welcome'
     updateMouse(app, mouseX, mouseY)
 
+    #for silly little cat speech bubble
+    catHeadLeft = 135
+    catHeadTop = 325
+    catHeadWidth = 70
+    catHeadHeight = 60
+    if (catHeadLeft <= mouseX <= catHeadLeft + catHeadWidth and catHeadTop <= 
+        mouseY <= catHeadTop + catHeadHeight):
+        app.speech = True
+    else:
+        app.speech = False
+
 def welcome_onMousePress(app, mouseX, mouseY):
     if app.instructionsButton.isSelected(mouseX, mouseY):
         setActiveScreen('instructions')
@@ -1283,7 +1215,10 @@ def welcome_onMousePress(app, mouseX, mouseY):
         setActiveScreen('start')
         app.prevScreen = 'welcome'
 
+    print(mouseX, mouseY)
+
 def welcome_redrawAll(app):
+    #image designed by me on Canva w/ existing graphics, link at top of main.py
     drawImage('welcomeBackground.png', 0, 0)
     app.instructionsButton.drawButton()
     app.startButton.drawButton()
@@ -1292,6 +1227,18 @@ def welcome_redrawAll(app):
         app.instructionsButton.drawHighlight()
     elif app.startButton.isSelected(app.mouseX, app.mouseY):
         app.startButton.drawHighlight()
+
+    if app.speech:
+        bubbleLeft = 10
+        bubbleTop = 250
+        bubbleWidth = 150
+        bubbleHeight = 90
+        bubbleCenterX = (bubbleLeft*2 + bubbleWidth)/2
+        bubbleCenterY = (bubbleTop*2 + bubbleHeight)/2
+        drawImage('speechBubble.png', bubbleLeft, bubbleTop, width = 
+                  bubbleWidth, height = bubbleHeight)
+        drawLabel("Wow you're so cool!", bubbleCenterX, bubbleCenterY, 
+                  font = app.font)
 
 ####MAIN####
 def main():

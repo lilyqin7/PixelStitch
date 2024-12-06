@@ -36,6 +36,7 @@ class ColorSelection:
 
     def draw(self):
         if self.isDragging:
+            #image from Canva, link at top of main.py
             drawImage('panelHighlight.png', self.leftEdge - 10, self.topEdge - 
                       10, width = self.width + 20, height = self.height + 20)
         #draw background
@@ -52,6 +53,7 @@ class ColorSelection:
     def drawSelected(self, mouseX, mouseY):
         #background, must move with mouse
         self.move(mouseX, mouseY)
+        #image from me
         drawImage('buttonHighlight.png', self.leftEdge - 10, self.topEdge - 10,
                   width = self.width + 20, height = self.height + 20)
         #draw color wheel

@@ -8,10 +8,11 @@ class Slider:
         self.height = 150
 
     def draw(self):
+        #image from me
         drawImage('sliderBackground.png', self.leftEdge, self.topEdge, 
                   width = self.width, height = self.height)    
     
-    #used to check if mouse is pressed on slider
+    #used to check if mouse is pressed in bounds
     def inBounds(self, mouseX, mouseY):
         rightEdge = self.leftEdge + self.width
         bottomEdge = self.topEdge + self.height
@@ -41,4 +42,3 @@ class Handle:
         offset = self.cy - self.slider.topEdge
         numSquares = int(offset * squaresPerPixel + minSquares)
         return numSquares
-    

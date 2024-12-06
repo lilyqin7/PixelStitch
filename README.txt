@@ -19,9 +19,16 @@ Run Instructions:
     classes necessary for the program to run: please have these files in the 
     same folder as main.py! (This also goes for cmu_graphics)
 
-    to install PIL, 
-    open Command Prompt, copy in output
+    to install PIL, type the follwing into a new Python file and run:
+        import sys
+        print(f'"{sys.executable}" -m pip install pillow')
+        print(f'"{sys.executable}" -m pip install requests')
+
+    open Command Promt and copy in output
 
     all images are linked at the top of main.py and here: 
     https://drive.google.com/file/d/1jT-9pziOpiJH7XHoS11JsRwiN8srBptv/view?usp=sharing
 
+
+Shortcuts:
+    Keep clicking the button in the lower right hand corner!
